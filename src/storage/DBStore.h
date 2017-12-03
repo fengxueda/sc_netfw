@@ -80,14 +80,14 @@ private:
 class DBConnection {
 public:
 	DBConnection(const sql::Connection* connection);
-	~DBConnection();
+	virtual ~DBConnection();
 
-	std::shared_ptr<Statement> CreateStatement(const std::string& sql = "");
-	void Commit();
-	void Rollback();
-	void Close();
-	bool IsClosed();
-	bool Reconnect();
+	virtual std::shared_ptr<Statement> CreateStatement(const std::string& sql = "");
+	virtual void Commit();
+	virtual void Rollback();
+	virtual void Close();
+	virtual bool IsClosed();
+	virtual bool Reconnect();
 
 	sql::Connection* connection_;
 };
@@ -112,9 +112,9 @@ public:
 		return dbconf_;
 	}
 
-	std::shared_ptr<DBConnection> CreateConnection();
-	std::shared_ptr<DBConnection> GetConnection();
-	void PutConnection(const std::shared_ptr<DBConnection>& connection);
+	virtual std::shared_ptr<DBConnection> CreateConnection();
+	virtual std::shared_ptr<DBConnection> GetConnection();
+	virtual void PutConnection(const std::shared_ptr<DBConnection>& connection);
 
 	static void Init(const DBConf& dbconf);
 	static void Destory();

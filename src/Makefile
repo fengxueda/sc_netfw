@@ -11,7 +11,7 @@ ${TARGET} : ${OBJ}
 	ar -rv $@ $^
 	@rm -rf ${OBJ}
 
-${OBJ} : ${SRC}
+%.o: %.cpp
 	${CC} -c ${CCFLAGS} $< -o $@
 
 .PHONY clean : 
