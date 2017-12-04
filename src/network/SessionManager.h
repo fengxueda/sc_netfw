@@ -13,15 +13,15 @@
 namespace network {
 
 class SessionManager {
-public:
-	SessionManager();
-	virtual ~SessionManager();
+ public:
+  SessionManager();
+  virtual ~SessionManager();
 
-private:
-	void MonitorThread();
+ private:
+  void MonitorThread();
 
-	bool running_;
-	std::thread* monitor_;
+  bool running_;
+  std::thread* monitor_;
 };
 
 } /* namespace network */

@@ -1,18 +1,18 @@
 #sed 's/要被替换的字符串/新的字符串/g'''
 
 CC = g++
-SRC = $(shell find . -name '*.cpp')
+ROOT_PATH ?= ..
+SRC = $(shell find ${ROOT_PATH} -name '*.cpp')
 OBJ = $(patsubst %.cpp,%.o,${SRC})  
 CCFLAGS = -std=c++11 -Wall -g -O2
-ROOT_PATH = ..
-TARGET = $(ROOT_PATH)/build/libnet.a
+INCLUDE = -I${ROOT_PATH}/include
+TARGET = ${ROOT_PATH}/build/libnet-wrapper.a
 
 ${TARGET} : ${OBJ}
 	ar -rv $@ $^
-	@rm -rf ${OBJ}
 
-%.o: %.cpp
-	${CC} -c ${CCFLAGS} $< -o $@
+%.o : %.cpp
+	${CC} -c ${CCFLAGS} $< -o $@ ${INCLUDE}
 
 .PHONY clean : 
 	rm -rf ${OBJ} ${TARGET}

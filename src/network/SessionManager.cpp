@@ -10,23 +10,24 @@
 
 namespace network {
 
-SessionManager::SessionManager() :
-		running_(true), monitor_(nullptr) {
-	monitor_ = new std::thread(&SessionManager::MonitorThread, this);
-	CHECK_NOTNULL(monitor_);
+SessionManager::SessionManager()
+    : running_(true),
+      monitor_(nullptr) {
+  monitor_ = new std::thread(&SessionManager::MonitorThread, this);
+  CHECK_NOTNULL(monitor_);
 }
 
 SessionManager::~SessionManager() {
-	running_ = false;
-	monitor_->join();
-	delete monitor_;
-	monitor_ = nullptr;
+  running_ = false;
+  monitor_->join();
+  delete monitor_;
+  monitor_ = nullptr;
 }
 
 void SessionManager::MonitorThread() {
-	while(running_) {
+  while (running_) {
 
-	}
+  }
 }
 
 } /* namespace network */
