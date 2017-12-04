@@ -8,6 +8,8 @@
 #ifndef SRC_NETWORK_SESSION_H_
 #define SRC_NETWORK_SESSION_H_
 
+#include <mutex>
+
 namespace network {
 
 class Session {
@@ -63,7 +65,12 @@ class Session {
     socket_ = socket;
   }
 
+  const std::mutex& mutex() const {
+    return mutex_;
+  }
+
  private:
+  std::mutex mutex_;
   std::string session_id_;
   std::string create_time_;
   std::string update_time_;

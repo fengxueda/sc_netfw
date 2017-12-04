@@ -10,45 +10,45 @@
 
 #include <memory>
 #include <mutex>
+#include <thread>
+#include <list>
 #include <unordered_map>
 #include <condition_variable>
 
 namespace network {
 
-struct EventBase {
-  void * wrapper;
-  struct event_base* base;
-};
-typedef struct EventBase EventBase;
-
-static int GetErrorCode(int socket_id);
-static void OnAccept(int listen_sd, short event, void *args);
-static void OnRead(struct bufferevent *buffer_event, void *ctx);
-static void OnWrite(struct bufferevent *buffer_event, void *ctx);
-static void OnStatusReport(struct bufferevent *buffer_event, short what,
-                           void *ctx);
-
+class Reactor;
 class Session;
+class ServiceWorker;
 
 class NetWrapper {
  public:
   NetWrapper();
   virtual ~NetWrapper();
 
+  void Launch();
+  void AddSession(const std::shared_ptr<Session>& session);
+  void DeleteSession(const std::string& session_id);
+  std::shared_ptr<Session> GetSession(const std::string& session_id);
+
+  struct event_base* base() {
+    return base_;
+  }
+  const int listen_sd() const {
+    return listen_sd_;
+  }
+
+ private:
   void TcpServerInit();
   void TcpServerDestory();
 
   void LibeventInit();
   void LibeventDestory();
-  void LibeventRegister();
 
-  void Launch();
+  void CreateReactor();
+  void CreateServiceWorkers();
 
-  void AddSession(const std::shared_ptr<Session>& session);
-  void DeleteSession(const std::string& session_id);
-  std::shared_ptr<Session> GetSession(const std::string& session_id);
-
- private:
+  static const int kThreadCount = 4;
   static const unsigned int kServerPort = 8802;
   static const int kMaxListenCount = 2048;
 
@@ -56,6 +56,8 @@ class NetWrapper {
   struct event_base* base_;
   std::mutex mutex_;
   std::condition_variable cond_var_;
+  std::unique_ptr<Reactor> reactor_;
+  std::list<std::shared_ptr<ServiceWorker>> service_workers_;
   std::unordered_map<std::string, std::shared_ptr<Session>> sessions_;
 };
 
