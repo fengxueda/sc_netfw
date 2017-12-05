@@ -14,8 +14,16 @@ namespace network {
 
 class Session {
  public:
-  Session();
-  virtual ~Session();
+  Session()
+      : remote_port_(0),
+        sockfd_(-1) {
+
+  }
+  virtual ~Session() {
+
+  }
+
+  void SendMessage();
 
   const std::string& session_id() const {
     return session_id_;
@@ -57,12 +65,12 @@ class Session {
     remote_port_ = remote_port;
   }
 
-  int socket() const {
-    return socket_;
+  int sockfd() const {
+    return sockfd_;
   }
 
-  void set_socket(const int socket) {
-    socket_ = socket;
+  void set_sockfd(const int sockfd) {
+    sockfd_ = sockfd;
   }
 
   const std::mutex& mutex() const {
@@ -76,7 +84,7 @@ class Session {
   std::string update_time_;
   std::string remote_ip_;
   unsigned short remote_port_;
-  int socket_;
+  int sockfd_;
 };
 
 }

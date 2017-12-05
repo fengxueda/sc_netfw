@@ -12,10 +12,9 @@
 
 namespace network {
 
-#define MAXSIZE 4096
-
 class DataPacket {
  public:
+#define MAXSIZE 4096
   DataPacket()
       : data_(nullptr),
         capacity_(0),
@@ -23,6 +22,16 @@ class DataPacket {
     data_ = new unsigned char[MAXSIZE / 4];
     capacity_ += MAXSIZE / 4;
   }
+  DataPacket(const unsigned char *data, int size) {
+    if (data != nullptr) {
+      data_ = const_cast<unsigned char*>(data);
+      length_ = size;
+      capacity_ = size;
+    } else {
+      DataPacket();
+    }
+  }
+
   ~DataPacket() {
     if (data_ != nullptr) {
       delete[] data_;
@@ -37,7 +46,6 @@ class DataPacket {
   }
   void CopyFromArray(const unsigned char *src, int size) {
     std::lock_guard<std::mutex> lock(mutex_);
-    CHECK(size <= MAXSIZE);
     CHECK_NOTNULL(data_);
     if (capacity_ < MAXSIZE) {
       delete[] data_;
@@ -67,10 +75,18 @@ class DataPacket {
       data_ = buffer;
     }
   }
+  void CapacityExpand(int size) {
+    std::lock_guard<std::mutex> lock(mutex_);
+    unsigned char *buffer = new unsigned char[capacity_ + size];
+    memcpy(buffer, data_, length_);
+    delete[] data_;
+    data_ = buffer;
+  }
 
   std::mutex& mutex() const {
     return mutex_;
   }
+#undef MAXSIZE
 
  private:
   mutable std::mutex mutex_;
@@ -78,8 +94,6 @@ class DataPacket {
   int capacity_;
   int length_;
 };
-
-#undef MAXSIZE
 
 }  // namespace network
 

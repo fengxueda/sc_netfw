@@ -5,8 +5,13 @@
  *      Author: xueda
  */
 
-#include <set>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include <sys/time.h>
+#include <set>
 #include <stdarg.h>
 #include <assert.h>
 #include <openssl/md5.h>
@@ -151,5 +156,26 @@ std::string GetMd5Code(const std::string& source) {
     md5_code.append(buf);
   }
   return md5_code;
+}
+
+int GetErrorCodeBySocket(int socket_id) {
+  int errcode;
+  unsigned int size = sizeof(errcode);
+  getsockopt(socket_id, SOL_SOCKET, SO_ERROR, (void *) &errcode, &size);
+  return errcode;
+}
+
+const std::string GetIpAdressBySocket(int sockfd) {
+  struct sockaddr_in address;
+  socklen_t size = sizeof(address);
+  getsockname(sockfd, (struct sockaddr *) &address, &size);
+  return std::string(inet_ntoa(address.sin_addr));
+}
+
+const std::string GetPortBySocket(int sockfd) {
+  struct sockaddr_in address;
+  socklen_t size = sizeof(address);
+  getsockname(sockfd, (struct sockaddr *) &address, &size);
+  return std::to_string(ntohs(address.sin_port));
 }
 

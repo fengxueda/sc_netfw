@@ -47,4 +47,10 @@ void VectorsOr(const std::vector<T>* first, const std::vector<T>* second,
 /* MD5加密 */
 std::string GetMd5Code(const std::string& source);
 
+int GetErrorCodeBySocket(int socket_id);
+
+const std::string GetIpAdressBySocket(int sockfd);
+
+const std::string GetPortBySocket(int sockfd);
+
 #endif /* INCLUDE_UTILS_H_ */

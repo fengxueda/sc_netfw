@@ -9,10 +9,10 @@
 #include <event2/event.h>
 #include <event2/event_struct.h>
 #include "Error.h"
-#include "NetWrapper.h"
-#include "Session.h"
-#include "EventDemutiplexor.h"
 #include "Reactor.h"
+#include "NetWrapper.h"
+#include "EventDemutiplexor.h"
+#include "SessionManager.h"
 
 #define CHECK_STATUS(_level_,_expr_)                                                \
     do {                                                                            \
@@ -25,13 +25,21 @@
 namespace network {
 
 NetWrapper::NetWrapper()
-    : listen_sd_(-1),
-      base_(nullptr) {
+    : listen_sd_(-1) {
   TcpServerInit();
 }
 
 NetWrapper::~NetWrapper() {
   TcpServerDestory();
+}
+
+void NetWrapper::Launch() {
+  CreateSessionManager();
+  CreateReactors();
+  CreateDemutiplexor();
+
+  main_reactor_->Join();
+  sub_reactor_->Join();
 }
 
 void NetWrapper::TcpServerInit() {
@@ -58,53 +66,26 @@ void NetWrapper::TcpServerDestory() {
   }
 }
 
-void NetWrapper::Launch() {
-  CreateReactors();
-  CreateDemutiplexor();
-  CHECK_NOTNULL(base_);
-  event_base_dispatch(base_);
-}
-
-void NetWrapper::AddSession(const std::shared_ptr<Session>& session) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  if (sessions_.end() == sessions_.find(session->session_id())) {
-    return;
-  }
-  sessions_[session->session_id()] = session;
-  cond_var_.notify_one();
-}
-
-void NetWrapper::DeleteSession(const std::string& session_id) {
-  std::lock_guard<std::mutex> lock(mutex_);
-  auto iter = sessions_.find(session_id);
-  if (iter != sessions_.end()) {
-    sessions_.erase(iter);
-  }
-  cond_var_.notify_one();
-}
-
-std::shared_ptr<Session> NetWrapper::GetSession(const std::string& session_id) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  cond_var_.wait(lock, [this] {return !sessions_.empty();});
-  auto iter = sessions_.find(session_id);
-  if (iter != sessions_.end()) {
-    return sessions_[session_id];
-  }
-  return nullptr;
-}
-
 void NetWrapper::CreateReactors() {
-  sub_reactor_.reset(new Reactor(this));
+  sub_reactor_.reset(new Reactor(session_manager_.get()));
   CHECK_NOTNULL(sub_reactor_.get());
   sub_reactor_->SetupSubReactor();
-  main_reactor_.reset(new Reactor(this));
+  main_reactor_.reset(new Reactor(session_manager_.get()));
   CHECK_NOTNULL(main_reactor_.get());
   main_reactor_->SetupMainReactor(listen_sd_, sub_reactor_.get());
+
+  main_reactor_->Start();
+  sub_reactor_->Start();
 }
 
 void NetWrapper::CreateDemutiplexor() {
   event_demutiplexor_.reset(new EventDemutiplexor());
   CHECK_NOTNULL(event_demutiplexor_.get());
+}
+
+void NetWrapper::CreateSessionManager() {
+  session_manager_.reset(new SessionManager());
+  CHECK_NOTNULL(session_manager_.get());
 }
 
 }
