@@ -56,66 +56,30 @@ void OnAccept(int listen_sd, short event, void* args) {
   CHECK(client_sd > 0);
 
   std::shared_ptr<Session> session = std::make_shared<Session>();
-  session->set_session_id(std::to_string(GetCurrentTimestamp()));
   session->set_remote_port(ntohs(client.sin_port));
+  session->set_remote_ip(inet_ntoa(client.sin_addr));
   session->set_socket(client_sd);
   session->set_create_time(GetLocalDate());
   session->set_update_time(GetLocalDate());
-  session->set_remote_ip(inet_ntoa(client.sin_addr));
-  NetWrapper* wrapper = (NetWrapper *) event_base->wrapper;
-  CHECK_NOTNULL(wrapper);
-  wrapper->AddSession(session);
-
-  struct bufferevent* buffer_event = bufferevent_socket_new(
-      event_base->base, client_sd, BEV_OPT_CLOSE_ON_FREE);
-  CHECK_NOTNULL(buffer_event);
-  bufferevent_setcb(buffer_event, OnRead, OnWrite, OnStatusReport, args);
-  bufferevent_enable(buffer_event, EV_READ | EV_WRITE | EV_PERSIST);
+  session->set_session_id(
+      session->remote_ip() + ":" + std::to_string(session->remote_port()));
+  Reactor* reactor = (Reactor *) event_base->reactor;
+  CHECK_NOTNULL(reactor);
+  reactor->CreateListener(client_sd);
+//  wrapper->AddSession(session);
 }
 
 void OnRead(struct bufferevent *buffer_event, void *ctx) {
-#define MAXSIZE    4096
-  int nbytes;
-  unsigned char buffer[MAXSIZE];
-  std::shared_ptr<DataPacket> message = std::make_shared<DataPacket>();
-  evutil_socket_t read_sd = bufferevent_getfd(buffer_event);
-  do {
-    nbytes = bufferevent_read(buffer_event, buffer, MAXSIZE);
-    switch (nbytes) {
-      case 0: {
-        DLOG(WARNING)<< "The connection is closed. Message : "
-        << strerror(GetErrorCode(read_sd));
-        bufferevent_free(buffer_event);
-        return;
-      }
-      break;
-      case -1: {
-        int errcode = GetErrorCode(read_sd);
-        if (EAGAIN != errcode) {
-          DLOG(WARNING) << "The connection occurs error. Message : "
-          << strerror(GetErrorCode(read_sd));
-          bufferevent_free(buffer_event);
-        }
-        // TODO : Push the datagram to queue
-        std::shared_ptr<ServiceEvent> service_event = std::make_shared<
-        ServiceEvent>();
-        service_event->set_datagram(message);
-        return;
-      }
-      break;
-      default: {
-        message->PushBack(buffer, nbytes);
-      }
-      break;
-    }
-
-  }while (nbytes > 0);
-
-#undef MAXSIZE
+  // TODO : Push the event to thread-pool
+  std::shared_ptr<ServiceEvent> service_event =
+      std::make_shared<ServiceEvent>();
+  service_event->set_type(ServiceEvent::TPYE_READ);
+  service_event->set_buffer_event(buffer_event);
+  service_event->set_ctx(ctx);
 }
 
 void OnWrite(struct bufferevent *buffer_event, void *ctx) {
-  //    bufferevent_write(bev, line, n);
+  // FIXME : No implement now
 }
 
 void OnStatusReport(struct bufferevent *buffer_event, short what, void *ctx) {
@@ -134,7 +98,7 @@ void OnStatusReport(struct bufferevent *buffer_event, short what, void *ctx) {
     }
     break;
     case BEV_EVENT_TIMEOUT: {
-      // no implement
+      // FIXME : no implement
     }
     break;
     default:
@@ -143,25 +107,101 @@ void OnStatusReport(struct bufferevent *buffer_event, short what, void *ctx) {
 }
 
 Reactor::Reactor(NetWrapper *wrapper)
-    : wrapper_(nullptr) {
+    : type_(TYPE_UNDEFINED),
+      base_(nullptr),
+      wrapper_(nullptr),
+      sub_reactor_(nullptr) {
   wrapper_ = wrapper;
   CHECK_NOTNULL(wrapper_);
-  RegisterAccptEvent();
+  struct event_config* config = event_config_new();
+  CHECK_NOTNULL(config);
+  event_config_avoid_method(config, "select");
+  event_config_require_features(config, EV_FEATURE_ET);
+  base_ = event_base_new_with_config(config);
+  CHECK_NOTNULL(base_);
+  event_config_free(config);
+  DLOG(INFO)<<"Current method of I/O checking : " << event_base_get_method(base_);
+  /*
+   * 可选设置优先级数目，然后通过event_priority_set设置事件的优先级
+   * 0为最高，n_priority-1为最低，此后创建的事件默认优先级为中间优先级
+   */
+  event_base_priority_init(base_, 3);
 }
 
 Reactor::~Reactor() {
-
+  CHECK_NOTNULL(base_);
+  event_base_free(base_);
 }
 
-void Reactor::RegisterAccptEvent() {
+void Reactor::SetupMainReactor(int listen_sd, Reactor* sub_reactor) {
+  CHECK(type_ == TYPE_UNDEFINED);
+  DLOG(INFO)<< "Setup main reactor.";
   EventBase* event_base = new EventBase();
-  event_base->base = wrapper_->base();
-  event_base->wrapper = this;
-  struct event* listen_event = event_new(wrapper_->base(),
-                                         wrapper_->listen_sd(),
-                                         EV_READ | EV_PERSIST,
+  event_base->base = base_;
+  event_base->reactor = this;
+  struct event* listen_event = event_new(base_, listen_sd, EV_READ | EV_PERSIST,
                                          OnAccept, (void *) event_base);
   event_add(listen_event, nullptr);
+  sub_reactor_ = sub_reactor;
+  CHECK_NOTNULL(sub_reactor_);
+  type_ = TYPE_MAIN_REACTOR;
+}
+
+void Reactor::SetupSubReactor() {
+  CHECK(type_ == TYPE_UNDEFINED);
+  DLOG(INFO)<< "Setup subclass reactor.";
+  type_ = TYPE_SUB_REACTOR;
+}
+
+void Reactor::CreateListener(int client_sd) {
+  CHECK(type_ == TYPE_MAIN_REACTOR);
+  struct bufferevent* buffer_event = bufferevent_socket_new(
+      sub_reactor_->base(), client_sd, BEV_OPT_CLOSE_ON_FREE);
+  CHECK_NOTNULL(buffer_event);
+  bufferevent_setcb(buffer_event, OnRead, OnWrite, OnStatusReport,
+                    sub_reactor_->base());
+  bufferevent_enable(buffer_event, EV_READ | EV_WRITE | EV_PERSIST);
+}
+
+void Reactor::RecvData(struct bufferevent *buffer_event, void *ctx) {
+#define MAXSIZE    4096
+  int nbytes;
+  unsigned char buffer[MAXSIZE];
+  std::shared_ptr<DataPacket> message = std::make_shared<DataPacket>();
+  evutil_socket_t read_sd = bufferevent_getfd(buffer_event);
+  do {
+    nbytes = bufferevent_read(buffer_event, buffer, MAXSIZE);
+    switch (nbytes) {
+      case 0: {
+        DLOG(WARNING)<< "The connection is closed. Message : "
+        << strerror(GetErrorCode(read_sd));
+        bufferevent_free(buffer_event);
+        return;
+      }
+      break;
+      case -1: {
+        int errcode = GetErrorCode(read_sd);
+        if (EAGAIN != errcode) {
+          DLOG(WARNING) << "The connection occurs error. Message : " << strerror(errcode);
+          bufferevent_free(buffer_event);
+        }
+        // TODO : Push the datagram to queue
+        return;
+      }
+      break;
+      default: {
+        message->PushBack(buffer, nbytes);
+      }
+      break;
+    }
+
+  }while (nbytes > 0);
+
+#undef MAXSIZE
+}
+
+void Reactor::SendData(struct bufferevent *buffer_event, void *ctx) {
+  // FIXME : No implement now
 }
 
 } /* namespace network */

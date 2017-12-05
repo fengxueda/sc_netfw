@@ -41,11 +41,7 @@ class NetWrapper {
  private:
   void TcpServerInit();
   void TcpServerDestory();
-
-  void LibeventInit();
-  void LibeventDestory();
-
-  void CreateReactor();
+  void CreateReactors();
   void CreateDemutiplexor();
 
   static const unsigned int kServerPort = 8802;
@@ -55,7 +51,8 @@ class NetWrapper {
   struct event_base* base_;
   std::mutex mutex_;
   std::condition_variable cond_var_;
-  std::unique_ptr<Reactor> reactor_;
+  std::unique_ptr<Reactor> main_reactor_;
+  std::unique_ptr<Reactor> sub_reactor_;
   std::unique_ptr<EventDemutiplexor> event_demutiplexor_;
   std::unordered_map<std::string, std::shared_ptr<Session>> sessions_;
 };

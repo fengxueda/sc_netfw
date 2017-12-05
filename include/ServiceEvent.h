@@ -11,25 +11,44 @@
 #include <memory>
 #include <mutex>
 
-namespace network {
+struct bufferevent;
 
-class DataPacket;
-class Session;
+namespace network {
 
 class ServiceEvent {
  public:
-  const std::shared_ptr<DataPacket>& datagram() const {
-    return datagram_;
+  enum EventType {
+    TPYE_READ = 1,
+    TYPE_WRITE = 2,
+  };
+
+  ServiceEvent()
+      : type_(0),
+        ctx_(nullptr),
+        buffer_event_(nullptr) {
+
   }
-  void set_datagram(const std::shared_ptr<DataPacket>& datagram) {
-    datagram_ = datagram;
+  virtual ~ServiceEvent() {
+
   }
 
-  const std::shared_ptr<Session>& session() const {
-    return session_;
+  const int type() const {
+    return type_;
   }
-  void set_session(std::shared_ptr<Session>& session) {
-    session_ = session;
+  void set_type(const int type) {
+    type_ = type;
+  }
+  const void* ctx() const {
+    return ctx_;
+  }
+  void set_ctx(const void* ctx) {
+    ctx_ = const_cast<void*>(ctx);
+  }
+  const struct bufferevent* buffer_event() const {
+    return buffer_event_;
+  }
+  void set_buffer_event(const struct bufferevent* buffer_event) {
+    buffer_event_ = const_cast<struct bufferevent*>(buffer_event);
   }
 
   std::mutex& mutex() const {
@@ -37,9 +56,10 @@ class ServiceEvent {
   }
 
  private:
+  int type_;
+  void *ctx_;
+  struct bufferevent* buffer_event_;
   mutable std::mutex mutex_;
-  std::shared_ptr<DataPacket> datagram_;
-  std::shared_ptr<Session> session_;
 };
 
 }

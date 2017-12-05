@@ -27,12 +27,10 @@ namespace network {
 NetWrapper::NetWrapper()
     : listen_sd_(-1),
       base_(nullptr) {
-  LibeventInit();
   TcpServerInit();
 }
 
 NetWrapper::~NetWrapper() {
-  LibeventDestory();
   TcpServerDestory();
 }
 
@@ -60,30 +58,9 @@ void NetWrapper::TcpServerDestory() {
   }
 }
 
-void NetWrapper::LibeventInit() {
-  struct event_config* config = event_config_new();
-  CHECK_NOTNULL(config);
-  event_config_avoid_method(config, "select");
-  event_config_require_features(config, EV_FEATURE_ET);
-  base_ = event_base_new_with_config(config);
-  CHECK_NOTNULL(base_);
-  event_config_free(config);
-  DLOG(INFO)<<"Current method of I/O checking : " << event_base_get_method(base_);
-
-  /*
-   * 可选设置优先级数目，然后通过event_priority_set设置事件的优先级
-   * 0为最高，n_priority-1为最低，此后创建的事件默认优先级为中间优先级
-   */
-  event_base_priority_init(base_, 3);
-}
-
-void NetWrapper::LibeventDestory() {
-  CHECK_NOTNULL(base_);
-  event_base_free(base_);
-}
-
 void NetWrapper::Launch() {
-  CreateReactor();
+  CreateReactors();
+  CreateDemutiplexor();
   CHECK_NOTNULL(base_);
   event_base_dispatch(base_);
 }
@@ -116,13 +93,18 @@ std::shared_ptr<Session> NetWrapper::GetSession(const std::string& session_id) {
   return nullptr;
 }
 
-void NetWrapper::CreateReactor() {
-  reactor_.reset(new Reactor(this));
-  CHECK_NOTNULL(reactor_.get());
+void NetWrapper::CreateReactors() {
+  sub_reactor_.reset(new Reactor(this));
+  CHECK_NOTNULL(sub_reactor_.get());
+  sub_reactor_->SetupSubReactor();
+  main_reactor_.reset(new Reactor(this));
+  CHECK_NOTNULL(main_reactor_.get());
+  main_reactor_->SetupMainReactor(listen_sd_, sub_reactor_.get());
 }
 
 void NetWrapper::CreateDemutiplexor() {
   event_demutiplexor_.reset(new EventDemutiplexor());
+  CHECK_NOTNULL(event_demutiplexor_.get());
 }
 
 }
