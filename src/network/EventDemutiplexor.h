@@ -25,7 +25,7 @@ class EventDemutiplexor {
 
   void AddCallback(
       std::function<void(std::shared_ptr<ServiceEvent>&)>& callback);
-  void PushEvent(const std::shared_ptr<ServiceEvent>& event);
+  void PushEventToDispatcher(const std::shared_ptr<ServiceEvent>& event);
 
  private:
   void CreateServiceWorkers();

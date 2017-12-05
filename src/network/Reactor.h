@@ -12,6 +12,7 @@
 #include <thread>
 #include <list>
 #include <condition_variable>
+#include <functional>
 
 struct event_base;
 
@@ -25,6 +26,7 @@ typedef struct EventBase EventBase;
 
 class Session;
 class SessionManager;
+class ServiceEvent;
 
 class Reactor {
  public:
@@ -50,15 +52,18 @@ class Reactor {
   void DeleteSession(const std::string& session_id);
   std::shared_ptr<Session> GetSession(const std::string& session_id);
 
- private:
-  void RecvData(struct bufferevent *buffer_event, void *ctx);
+  void SetServiceHandlerCallback(
+      const std::function<void(std::shared_ptr<ServiceEvent>&)>& callback);
+  void OnServiceEventHandler(std::shared_ptr<ServiceEvent>& service_event);
 
+ private:
   void ReactorMainloop();
 
   int type_;
   struct event_base *base_;
 
   bool running_;
+  struct event* listen_event_;
   std::thread* reactor_thread_;
   Reactor* sub_reactor_;
   SessionManager *session_manager_;
@@ -66,6 +71,7 @@ class Reactor {
   std::mutex mutex_;
   std::condition_variable cond_var_;
   std::list<std::shared_ptr<EventBase>> eventbases_;
+  std::function<void(std::shared_ptr<ServiceEvent>&)> handler_callback_;
 };
 
 } /* namespace network */

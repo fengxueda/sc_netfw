@@ -18,6 +18,7 @@ class ServiceWorker {
   ServiceWorker();
   virtual ~ServiceWorker();
 
+  void Stop();
   void AddCallback(const std::function<void ()>& callback);
 
  private:

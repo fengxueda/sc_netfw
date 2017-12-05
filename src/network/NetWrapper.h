@@ -26,9 +26,11 @@ class NetWrapper {
  private:
   void TcpServerInit();
   void TcpServerDestory();
+
   void CreateReactors();
   void CreateDemutiplexor();
   void CreateSessionManager();
+  void ReleaseComponents();
 
   static const unsigned int kServerPort = 8802; // FIXME : For debug
   static const int kMaxListenCount = 2048;  // FIXME : For debug

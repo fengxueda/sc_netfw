@@ -14,9 +14,22 @@ namespace network {
 
 EventDemutiplexor::EventDemutiplexor() {
   CreateServiceWorkers();
+  RegisterEventDispatcher();
 }
 
 EventDemutiplexor::~EventDemutiplexor() {
+  for (auto worker : workers_) {
+    worker->Stop();
+  }
+  for (unsigned int index = 0; index < kThreadCount; index++) {
+    events_.push(nullptr);
+    cond_var_.notify_all();
+  }
+  for (auto worker : workers_) {
+    worker.reset();
+  }
+  usleep(kThreadCount * 100 * 1000);
+  DLOG(INFO)<< __FUNCTION__;
 }
 
 void EventDemutiplexor::CreateServiceWorkers() {
@@ -38,7 +51,8 @@ void EventDemutiplexor::AddCallback(
   callbacks_.push_back(callback);
 }
 
-void EventDemutiplexor::PushEvent(const std::shared_ptr<ServiceEvent>& event) {
+void EventDemutiplexor::PushEventToDispatcher(
+    const std::shared_ptr<ServiceEvent>& event) {
   std::lock_guard<std::mutex> lock(mutex_);
   events_.push(event);
   cond_var_.notify_one();

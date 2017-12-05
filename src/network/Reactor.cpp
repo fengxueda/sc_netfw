@@ -41,6 +41,7 @@ Reactor::Reactor(const SessionManager *session_manager)
     : type_(TYPE_UNDEFINED),
       base_(nullptr),
       running_(false),
+      listen_event_(nullptr),
       reactor_thread_(nullptr),
       sub_reactor_(nullptr),
       session_manager_(nullptr) {
@@ -66,16 +67,22 @@ Reactor::Reactor(const SessionManager *session_manager)
 
 Reactor::~Reactor() {
   CHECK_NOTNULL(base_);
+  if (type_ == TYPE_MAIN_REACTOR) {
+    event_del(listen_event_);
+  }
+  event_base_loopbreak(base_);
   event_base_free(base_);
 
   reactor_thread_->join();
   delete reactor_thread_;
   reactor_thread_ = nullptr;
+  DLOG(INFO)<< __FUNCTION__;
 }
 
 void Reactor::Start() {
   running_ = true;
   cond_var_.notify_one();
+  DLOG(INFO)<< "Begin to start up reactor.";
 }
 
 void Reactor::Join() {
@@ -89,9 +96,10 @@ void Reactor::SetupMainReactor(int listen_sd, Reactor* sub_reactor) {
   event_base->base = base_;
   event_base->reactor = this;
   eventbases_.push_back(event_base);
-  struct event* listen_event = event_new(base_, listen_sd, EV_READ | EV_PERSIST,
-                                         OnAccept, event_base.get());
-  event_add(listen_event, nullptr);
+  listen_event_ = event_new(base_, listen_sd, EV_READ | EV_PERSIST, OnAccept,
+                            event_base.get());
+  CHECK_NOTNULL(listen_event_);
+  event_add(listen_event_, nullptr);
   sub_reactor_ = sub_reactor;
   CHECK_NOTNULL(sub_reactor_);
   type_ = TYPE_MAIN_REACTOR;
@@ -129,20 +137,22 @@ std::shared_ptr<Session> Reactor::GetSession(const std::string& session_id) {
   return session_manager_->GetSession(session_id);
 }
 
-void Reactor::RecvData(struct bufferevent *buffer_event, void *ctx) {
-  struct evbuffer* input = bufferevent_get_input(buffer_event);  //其实就是取出bufferevent中的input
-  size_t size = evbuffer_get_length(input);
-  unsigned char *buffer = new unsigned char[size];
-  bufferevent_read(buffer_event, buffer, size);
-  std::shared_ptr<DataPacket> message = std::make_shared<DataPacket>(buffer,
-                                                                     size);
-  // TODO : Push the datagram to queue
+void Reactor::SetServiceHandlerCallback(
+    const std::function<void(std::shared_ptr<ServiceEvent>&)>& callback) {
+  CHECK(type_ == TYPE_SUB_REACTOR);
+  handler_callback_ = callback;
+}
 
+void Reactor::OnServiceEventHandler(
+    std::shared_ptr<ServiceEvent>& service_event) {
+  CHECK(type_ == TYPE_SUB_REACTOR);
+  handler_callback_(service_event);
 }
 
 void Reactor::ReactorMainloop() {
   std::unique_lock<std::mutex> lock(mutex_);
   cond_var_.wait(lock, [this] {return running_;});
+  DLOG(INFO)<< "Reactor start up successful, come to main loop.";
   event_base_dispatch(base_);
 }
 
@@ -172,12 +182,17 @@ static void OnAccept(int listen_sd, short event, void* args) {
 }
 
 static void OnRead(struct bufferevent *buffer_event, void *ctx) {
-  // TODO : Push the event to thread-pool
+  EventBase* event_base = (EventBase *) ctx;
+  CHECK_NOTNULL(event_base);
+  CHECK_NOTNULL(event_base->base);
   std::shared_ptr<ServiceEvent> service_event =
       std::make_shared<ServiceEvent>();
   service_event->set_type(ServiceEvent::TPYE_READ);
   service_event->set_buffer_event(buffer_event);
   service_event->set_ctx(ctx);
+  // TODO : Push the event to thread-pool
+  Reactor* reactor = (Reactor *) event_base->reactor;
+  reactor->OnServiceEventHandler(service_event);
 }
 
 static void OnStatusReport(struct bufferevent *buffer_event, short event,
@@ -209,6 +224,7 @@ static void OnStatusReport(struct bufferevent *buffer_event, short event,
 }
 
 }
+
 /* namespace network */
 
 #undef CHECK_STATUS

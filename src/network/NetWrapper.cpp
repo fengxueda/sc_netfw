@@ -5,6 +5,7 @@
  *      Author: xueda
  */
 
+#include <functional>
 #include <glog/logging.h>
 #include <event2/event.h>
 #include <event2/event_struct.h>
@@ -31,6 +32,8 @@ NetWrapper::NetWrapper()
 
 NetWrapper::~NetWrapper() {
   TcpServerDestory();
+  ReleaseComponents();
+  DLOG(INFO)<< __FUNCTION__;
 }
 
 void NetWrapper::Launch() {
@@ -38,8 +41,8 @@ void NetWrapper::Launch() {
   CreateReactors();
   CreateDemutiplexor();
 
-  main_reactor_->Join();
-  sub_reactor_->Join();
+//  main_reactor_->Join();
+//  sub_reactor_->Join();
 }
 
 void NetWrapper::TcpServerInit() {
@@ -64,9 +67,11 @@ void NetWrapper::TcpServerDestory() {
   if (listen_sd_ > 0) {
     CHECK_STATUS(WARNING, evutil_closesocket(listen_sd_));
   }
+  DLOG(INFO)<< "Tcp server is destructed successful.";
 }
 
 void NetWrapper::CreateReactors() {
+  DLOG(INFO)<< "Begin to create reactors.";
   sub_reactor_.reset(new Reactor(session_manager_.get()));
   CHECK_NOTNULL(sub_reactor_.get());
   sub_reactor_->SetupSubReactor();
@@ -81,11 +86,23 @@ void NetWrapper::CreateReactors() {
 void NetWrapper::CreateDemutiplexor() {
   event_demutiplexor_.reset(new EventDemutiplexor());
   CHECK_NOTNULL(event_demutiplexor_.get());
+  sub_reactor_->SetServiceHandlerCallback(
+      std::bind(&EventDemutiplexor::PushEventToDispatcher,
+                event_demutiplexor_.get(), std::placeholders::_1));
+  DLOG(INFO)<< "Create demutiplexor successful.";
 }
 
 void NetWrapper::CreateSessionManager() {
   session_manager_.reset(new SessionManager());
   CHECK_NOTNULL(session_manager_.get());
+  DLOG(INFO)<< "Create Session manager successful.";
+}
+
+void NetWrapper::ReleaseComponents() {
+  session_manager_.reset();
+  event_demutiplexor_.reset();
+  sub_reactor_.reset();
+  main_reactor_.reset();
 }
 
 }

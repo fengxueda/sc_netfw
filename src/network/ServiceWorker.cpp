@@ -22,6 +22,11 @@ ServiceWorker::~ServiceWorker() {
   worker_->join();
   delete worker_;
   worker_ = nullptr;
+  DLOG(INFO) << __FUNCTION__;
+}
+
+void ServiceWorker::Stop() {
+  running_ = false;
 }
 
 void ServiceWorker::AddCallback(const std::function<void()>& callback) {
@@ -37,4 +42,5 @@ void ServiceWorker::ServiceProcessor() {
 }
 
 } /* namespace network */
+
 

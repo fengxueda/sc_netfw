@@ -11,17 +11,17 @@ ${TARGET} : all
 	@echo 'Build ${TARGET} successful...'
 		
 all :
-	@for module in $(MODULE_DIR); 				\
-	do { 																	\
-		$(MAKE) -C $$module || exit "$$?";	\
-		};			\
+	@for module in $(MODULE_DIR); 							\
+	do {													\
+		$(MAKE) -C $$module || exit "$$?";					\
+		};													\
 	done							
 
 
 .PHONY clean :
 	@rm -rf ${TARGET} $(shell find ${BUILD} -name '*.o')
-	@for module in $(MODULE_DIR); 				\
-	do {																	\
-		$(MAKE) -C $$module $@;							\
-		}; 																	\
+	@for module in $(MODULE_DIR); 							\
+	do {													\
+		$(MAKE) -C $$module $@;								\
+		}; 													\
 	done

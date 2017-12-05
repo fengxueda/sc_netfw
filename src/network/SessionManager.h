@@ -22,6 +22,7 @@ class SessionManager {
   SessionManager();
   virtual ~SessionManager();
 
+  void Stop();
   void AddSession(const std::shared_ptr<Session>& session);
   void DeleteSession(const std::string& session_id);
   std::shared_ptr<Session> GetSession(const std::string& session_id);
