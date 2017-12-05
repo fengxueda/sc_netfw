@@ -19,7 +19,7 @@ namespace network {
 
 class Reactor;
 class Session;
-class ServiceWorker;
+class EventDemutiplexor;
 
 class NetWrapper {
  public:
@@ -46,9 +46,8 @@ class NetWrapper {
   void LibeventDestory();
 
   void CreateReactor();
-  void CreateServiceWorkers();
+  void CreateDemutiplexor();
 
-  static const int kThreadCount = 4;
   static const unsigned int kServerPort = 8802;
   static const int kMaxListenCount = 2048;
 
@@ -57,7 +56,7 @@ class NetWrapper {
   std::mutex mutex_;
   std::condition_variable cond_var_;
   std::unique_ptr<Reactor> reactor_;
-  std::list<std::shared_ptr<ServiceWorker>> service_workers_;
+  std::unique_ptr<EventDemutiplexor> event_demutiplexor_;
   std::unordered_map<std::string, std::shared_ptr<Session>> sessions_;
 };
 

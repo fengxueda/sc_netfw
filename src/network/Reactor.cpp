@@ -142,9 +142,9 @@ void OnStatusReport(struct bufferevent *buffer_event, short what, void *ctx) {
   }
 }
 
-Reactor::Reactor(void *ctx)
+Reactor::Reactor(NetWrapper *wrapper)
     : wrapper_(nullptr) {
-  wrapper_ = (NetWrapper *) ctx;
+  wrapper_ = wrapper;
   CHECK_NOTNULL(wrapper_);
   RegisterAccptEvent();
 }

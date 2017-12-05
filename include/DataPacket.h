@@ -68,8 +68,12 @@ class DataPacket {
     }
   }
 
+  std::mutex& mutex() const {
+    return mutex_;
+  }
+
  private:
-  std::mutex mutex_;
+  mutable std::mutex mutex_;
   unsigned char *data_;
   int capacity_;
   int length_;

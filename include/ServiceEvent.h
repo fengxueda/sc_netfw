@@ -9,6 +9,7 @@
 #define INCLUDE_SERVICEEVENT_H_
 
 #include <memory>
+#include <mutex>
 
 namespace network {
 
@@ -31,7 +32,12 @@ class ServiceEvent {
     session_ = session;
   }
 
+  std::mutex& mutex() const {
+    return mutex_;
+  }
+
  private:
+  mutable std::mutex mutex_;
   std::shared_ptr<DataPacket> datagram_;
   std::shared_ptr<Session> session_;
 };

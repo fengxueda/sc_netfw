@@ -20,7 +20,7 @@ class NetWrapper;
 
 class Reactor {
  public:
-  Reactor(void *ctx);
+  Reactor(NetWrapper *wrapper);
   virtual ~Reactor();
 
  private:

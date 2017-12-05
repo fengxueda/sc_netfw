@@ -9,19 +9,23 @@
 #define SRC_NETWORK_SERVICEWORKER_H_
 
 #include <thread>
+#include <functional>
 
 namespace network {
 
 class ServiceWorker {
  public:
-  ServiceWorker(void *ctx);
+  ServiceWorker();
   virtual ~ServiceWorker();
+
+  void AddCallback(const std::function<void ()>& callback);
 
  private:
   void ServiceProcessor();
 
   bool running_;
   std::thread* worker_;
+  std::vector< std::function<void ()> > callbacks_;
 };
 
 } /* namespace network */

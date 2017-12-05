@@ -8,12 +8,10 @@
 #include <glog/logging.h>
 #include <event2/event.h>
 #include <event2/event_struct.h>
-#include <event2/bufferevent.h>
-#include <event2/buffer.h>
-#include "NetWrapper.h"
 #include "Error.h"
+#include "NetWrapper.h"
 #include "Session.h"
-#include "ServiceWorker.h"
+#include "EventDemutiplexor.h"
 #include "Reactor.h"
 
 #define CHECK_STATUS(_level_,_expr_)                                                \
@@ -86,7 +84,6 @@ void NetWrapper::LibeventDestory() {
 
 void NetWrapper::Launch() {
   CreateReactor();
-  CreateServiceWorkers();
   CHECK_NOTNULL(base_);
   event_base_dispatch(base_);
 }
@@ -124,13 +121,8 @@ void NetWrapper::CreateReactor() {
   CHECK_NOTNULL(reactor_.get());
 }
 
-void NetWrapper::CreateServiceWorkers() {
-  for (int index = 0; index < kThreadCount; index++) {
-    std::shared_ptr<ServiceWorker> worker = std::make_shared<ServiceWorker>(
-        this);
-    CHECK_NOTNULL(worker.get());
-    service_workers_.push_back(worker);
-  }
+void NetWrapper::CreateDemutiplexor() {
+  event_demutiplexor_.reset(new EventDemutiplexor());
 }
 
 }
