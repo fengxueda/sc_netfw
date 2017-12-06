@@ -41,7 +41,7 @@ Reactor::Reactor(const SessionManager *session_manager)
     : type_(TYPE_UNDEFINED),
       sub_reactor_base_(nullptr),
       running_(false),
-      listen_event_(nullptr),
+      event_(nullptr),
       reactor_thread_(nullptr),
       session_manager_(nullptr) {
   session_manager_ = const_cast<SessionManager*>(session_manager);
@@ -69,10 +69,8 @@ Reactor::Reactor(const SessionManager *session_manager)
 Reactor::~Reactor() {
   CHECK_NOTNULL(reactor_base_->event_base());
   event_base_loopbreak(reactor_base_->event_base());
-  if (type_ == TYPE_MAIN_REACTOR) {
-    event_del(listen_event_);
-    event_free(listen_event_);
-  }
+  event_del(event_);
+  event_free(event_);
   event_base_free(reactor_base_->event_base());
 
   reactor_thread_->join();
@@ -94,14 +92,11 @@ void Reactor::Join() {
 void Reactor::SetupMainReactor(int listen_sd, ReactorBase* sub_reactor_base) {
   CHECK(type_ == TYPE_UNDEFINED);
   DLOG(INFO)<< "Setup main reactor.";
-  listen_event_ = event_new(reactor_base_->event_base(), listen_sd,
+  event_ = event_new(reactor_base_->event_base(), listen_sd,
   EV_READ | EV_PERSIST,
-                            OnAccept, reactor_base_.get());
-  CHECK_NOTNULL(listen_event_);
-  struct timeval tv;
-  tv.tv_sec = 1;
-  tv.tv_usec = 0;
-  event_add(listen_event_, &tv);
+                     OnAccept, reactor_base_.get());
+  CHECK_NOTNULL(event_);
+  event_add(event_, nullptr);
   CHECK_NOTNULL(sub_reactor_base);
   sub_reactor_base_ = sub_reactor_base;
   type_ = TYPE_MAIN_REACTOR;
@@ -110,6 +105,11 @@ void Reactor::SetupMainReactor(int listen_sd, ReactorBase* sub_reactor_base) {
 void Reactor::SetupSubReactor() {
   CHECK(type_ == TYPE_UNDEFINED);
   DLOG(INFO)<< "Setup subclass reactor.";
+  event_ = event_new(reactor_base_->event_base(), 0,
+  EV_READ | EV_PERSIST,
+                     OnAccept, reactor_base_.get());
+  CHECK_NOTNULL(event_);
+  event_add(event_, nullptr);
   type_ = TYPE_SUB_REACTOR;
 }
 
@@ -191,7 +191,7 @@ static void OnRecvData(struct bufferevent *buffer_event, void *ctx) {
   CHECK_NOTNULL(reactor_base);
   CHECK_NOTNULL(reactor_base->event_base());
   std::shared_ptr<ServiceEvent> service_event =
-      std::make_shared<ServiceEvent>();
+  std::make_shared<ServiceEvent>();
   service_event->set_type(ServiceEvent::TPYE_READ);
   service_event->set_buffer_event(buffer_event);
   service_event->set_ctx(ctx);
@@ -206,10 +206,12 @@ static void OnStatusReport(struct bufferevent *buffer_event, short event,
   CHECK_NOTNULL(reactor_base);
   CHECK_NOTNULL(reactor_base->event_base());
   evutil_socket_t sockfd = bufferevent_getfd(buffer_event);
-  DLOG(INFO)<< "Socket (" << sockfd << ") has new status to report : ";
-  switch (event) {
+  std::string session_id = GetIpAdressBySocket(sockfd) + ":"
+      + GetPortBySocket(sockfd);
+  DLOG(INFO)<< "Session [" << session_id << "] has new status to report : Status = " << event;
+  switch (event & 0xF0) {
     case BEV_EVENT_EOF:
-      DLOG(INFO)<<"This connection is closed.";
+      DLOG(INFO)<<"This connection is closed by the other side.";
       break;
       case BEV_EVENT_ERROR:
       DLOG(INFO) << "Error occurs , message : "
@@ -223,8 +225,7 @@ static void OnStatusReport(struct bufferevent *buffer_event, short event,
     }
   Reactor* reactor = (Reactor *) reactor_base->reactor();
   CHECK_NOTNULL(reactor);
-  reactor->DeleteSession(
-      GetIpAdressBySocket(sockfd) + ":" + GetPortBySocket(sockfd));
+  reactor->DeleteSession(session_id);
 }
 
 }

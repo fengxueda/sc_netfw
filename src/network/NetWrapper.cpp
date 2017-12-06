@@ -41,8 +41,8 @@ void NetWrapper::Launch() {
   CreateReactors();
   CreateDemutiplexor();
 
-//  main_reactor_->Join();
-//  sub_reactor_->Join();
+  main_reactor_->Join();
+  sub_reactor_->Join();
 }
 
 void NetWrapper::TcpServerInit() {

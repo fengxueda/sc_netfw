@@ -22,7 +22,7 @@ SessionImpl::SessionImpl()
 SessionImpl::~SessionImpl() {
   if (buffer_event_ != nullptr) {
     bufferevent_free(buffer_event_);
-//    buffer_event_ = nullptr;
+    buffer_event_ = nullptr;
   }
 }
 

@@ -59,7 +59,7 @@ class Reactor {
   ReactorBase* sub_reactor_base_;
 
   bool running_;
-  struct event* listen_event_;
+  struct event* event_;
   std::thread* reactor_thread_;
   SessionManager *session_manager_;
   std::function<void(std::shared_ptr<ServiceEvent>&)> handler_callback_;
