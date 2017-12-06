@@ -11,7 +11,6 @@
 #include <thread>
 #include <mutex>
 #include <unordered_map>
-#include <condition_variable>
 
 namespace network {
 
@@ -33,7 +32,6 @@ class SessionManager {
   bool running_;
   std::thread* monitor_;
   std::mutex mutex_;
-  std::condition_variable cond_var_;
   std::unordered_map<std::string, std::shared_ptr<Session>> sessions_;
 };
 

@@ -4,6 +4,6 @@
 int main() {
   network::NetWrapper netwarpper;
   netwarpper.Launch();
-  sleep(1);
+  sleep(15);
   return 0;
 }

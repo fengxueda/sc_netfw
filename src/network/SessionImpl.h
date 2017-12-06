@@ -8,7 +8,10 @@
 #ifndef SRC_NETWORK_SESSIONIMPL_H_
 #define SRC_NETWORK_SESSIONIMPL_H_
 
+#include <memory>
 #include "Session.h"
+
+struct bufferevent;
 
 namespace network {
 
@@ -17,11 +20,11 @@ class SessionImpl : public Session {
   SessionImpl();
   virtual ~SessionImpl();
 
-  int SendMessage(unsigned char *data, int size);
-  int GetErrorStatus();
+  void SetBufferEvent(const struct bufferevent* buffer_event);
+  void SendMessage(unsigned char *data, int size);
 
  private:
-
+  struct bufferevent* buffer_event_;
 };
 
 } /* namespace network */

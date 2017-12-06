@@ -18,12 +18,7 @@ struct event_base;
 
 namespace network {
 
-struct EventBase {
-  void * reactor;
-  struct event_base* base;
-};
-typedef struct EventBase EventBase;
-
+class ReactorBase;
 class Session;
 class SessionManager;
 class ServiceEvent;
@@ -39,14 +34,14 @@ class Reactor {
   Reactor(const SessionManager *session_manager);
   virtual ~Reactor();
 
-  struct event_base* base() const {
-    return base_;
+  ReactorBase* reactor_base() const {
+    return reactor_base_.get();
   }
   void Start();
   void Join();
-  void SetupMainReactor(int listen_sd, Reactor* sub_reactor);
+  void SetupMainReactor(int listen_sd, ReactorBase* sub_reactor_base);
   void SetupSubReactor();
-  void CreateListener(int client_sd);
+  void CreateEventMonitor(const std::shared_ptr<Session>& session);
 
   void AddSession(const std::shared_ptr<Session>& session);
   void DeleteSession(const std::string& session_id);
@@ -60,18 +55,45 @@ class Reactor {
   void ReactorMainloop();
 
   int type_;
-  struct event_base *base_;
+  std::unique_ptr<ReactorBase> reactor_base_;
+  ReactorBase* sub_reactor_base_;
 
   bool running_;
   struct event* listen_event_;
   std::thread* reactor_thread_;
-  Reactor* sub_reactor_;
   SessionManager *session_manager_;
+  std::function<void(std::shared_ptr<ServiceEvent>&)> handler_callback_;
 
   std::mutex mutex_;
   std::condition_variable cond_var_;
-  std::list<std::shared_ptr<EventBase>> eventbases_;
-  std::function<void(std::shared_ptr<ServiceEvent>&)> handler_callback_;
+};
+
+class ReactorBase {
+ public:
+  ReactorBase()
+      : reactor_(0),
+        event_base_(nullptr) {
+  }
+  virtual ~ ReactorBase() {
+  }
+
+  void* reactor() const {
+    return reactor_;
+  }
+  void set_reactor(const void* reactor) {
+    CHECK_NOTNULL(reactor);
+    reactor_ = const_cast<void*>(reactor);
+  }
+  struct event_base* event_base() const {
+    return event_base_;
+  }
+  void set_event_base(const struct event_base* event_base) {
+    CHECK_NOTNULL(event_base);
+    event_base_ = const_cast<struct event_base*>(event_base);
+  }
+
+  void * reactor_;
+  struct event_base* event_base_;
 };
 
 } /* namespace network */

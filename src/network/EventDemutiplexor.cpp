@@ -28,7 +28,6 @@ EventDemutiplexor::~EventDemutiplexor() {
   for (auto worker : workers_) {
     worker.reset();
   }
-  usleep(kThreadCount * 100 * 1000);
   DLOG(INFO)<< __FUNCTION__;
 }
 

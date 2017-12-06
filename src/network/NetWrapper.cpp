@@ -59,7 +59,7 @@ void NetWrapper::TcpServerInit() {
       FATAL,
       bind(listen_sd_, (struct sockaddr * )&server, sizeof(struct sockaddr)));
   CHECK_STATUS(FATAL, listen(listen_sd_, kMaxListenCount));
-  evutil_make_socket_nonblocking(listen_sd_);
+  CHECK_STATUS(FATAL, evutil_make_socket_nonblocking(listen_sd_));
   DLOG(INFO)<< "Bind port(" << kServerPort << ") successful. Listening...";
 }
 
@@ -77,7 +77,7 @@ void NetWrapper::CreateReactors() {
   sub_reactor_->SetupSubReactor();
   main_reactor_.reset(new Reactor(session_manager_.get()));
   CHECK_NOTNULL(main_reactor_.get());
-  main_reactor_->SetupMainReactor(listen_sd_, sub_reactor_.get());
+  main_reactor_->SetupMainReactor(listen_sd_, sub_reactor_->reactor_base());
 
   main_reactor_->Start();
   sub_reactor_->Start();

@@ -1,11 +1,10 @@
 CXX := g++
 CXXFLAGS := -std=c++11 -Wall -g -O2 
 INCLUDES := -I${ROOT}/include
-LIBS := -lmysqlcppconn -levent
 
 all : ${OBJ}
 ${OBJ} :%.o : %.cpp $(shell find ${ROOT} -name '*.h')
-	${CXX} -c ${CXXFLAGS} $< -o $@ ${INCLUDES} ${LIBS}
+	${CXX} -c ${CXXFLAGS} $< -o $@ ${INCLUDES}
 	@cp $@ ${ROOT}/build
 
 .PHONY clean : 

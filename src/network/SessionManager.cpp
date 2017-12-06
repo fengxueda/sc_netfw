@@ -23,7 +23,7 @@ SessionManager::~SessionManager() {
   monitor_->join();
   delete monitor_;
   monitor_ = nullptr;
-  usleep(100 * 1000);
+  sessions_.clear();
   DLOG(INFO)<< __FUNCTION__;
 }
 
@@ -33,11 +33,10 @@ void SessionManager::Stop() {
 
 void SessionManager::AddSession(const std::shared_ptr<Session>& session) {
   std::lock_guard<std::mutex> lock(mutex_);
-  if (sessions_.end() == sessions_.find(session->session_id())) {
+  if (sessions_.end() != sessions_.find(session->session_id())) {
     return;
   }
   sessions_[session->session_id()] = session;
-  cond_var_.notify_one();
 }
 
 void SessionManager::DeleteSession(const std::string& session_id) {
@@ -46,13 +45,11 @@ void SessionManager::DeleteSession(const std::string& session_id) {
   if (iter != sessions_.end()) {
     sessions_.erase(iter);
   }
-  cond_var_.notify_one();
 }
 
 std::shared_ptr<Session> SessionManager::GetSession(
     const std::string& session_id) {
-  std::unique_lock<std::mutex> lock(mutex_);
-  cond_var_.wait(lock, [this] {return !sessions_.empty();});
+  std::lock_guard<std::mutex> lock(mutex_);
   auto iter = sessions_.find(session_id);
   if (iter != sessions_.end()) {
     return sessions_[session_id];

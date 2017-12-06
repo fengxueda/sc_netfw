@@ -33,50 +33,52 @@
 namespace network {
 
 static void OnAccept(int listen_sd, short event, void *args);
-static void OnRead(struct bufferevent *buffer_event, void *ctx);
+static void OnRecvData(struct bufferevent *buffer_event, void *ctx);
 static void OnStatusReport(struct bufferevent *buffer_event, short event,
                            void *ctx);
 
 Reactor::Reactor(const SessionManager *session_manager)
     : type_(TYPE_UNDEFINED),
-      base_(nullptr),
+      sub_reactor_base_(nullptr),
       running_(false),
       listen_event_(nullptr),
       reactor_thread_(nullptr),
-      sub_reactor_(nullptr),
       session_manager_(nullptr) {
   session_manager_ = const_cast<SessionManager*>(session_manager);
   CHECK_NOTNULL(session_manager_);
+  reactor_base_.reset(new ReactorBase());
+  CHECK_NOTNULL(reactor_base_.get());
   struct event_config* config = event_config_new();
   CHECK_NOTNULL(config);
   event_config_avoid_method(config, "select");
   event_config_require_features(config, EV_FEATURE_ET);
-  base_ = event_base_new_with_config(config);
-  CHECK_NOTNULL(base_);
+  reactor_base_->set_event_base(event_base_new_with_config(config));
+  reactor_base_->set_reactor(this);
   event_config_free(config);
-  DLOG(INFO)<<"Current method of I/O checking : " << event_base_get_method(base_);
+  DLOG(INFO)<<"Current method of I/O checking : " << event_base_get_method(reactor_base_->event_base());
   /*
    * 可选设置优先级数目，然后通过event_priority_set设置事件的优先级
    * 0为最高，n_priority-1为最低，此后创建的事件默认优先级为中间优先级
    */
-  event_base_priority_init(base_, 3);
+  event_base_priority_init(reactor_base_->event_base(), 3);
 
   reactor_thread_ = new std::thread(&Reactor::ReactorMainloop, this);
   CHECK_NOTNULL(reactor_thread_);
 }
 
 Reactor::~Reactor() {
-  CHECK_NOTNULL(base_);
+  CHECK_NOTNULL(reactor_base_->event_base());
+  event_base_loopbreak(reactor_base_->event_base());
   if (type_ == TYPE_MAIN_REACTOR) {
     event_del(listen_event_);
+    event_free(listen_event_);
   }
-  event_base_loopbreak(base_);
-  event_base_free(base_);
+  event_base_free(reactor_base_->event_base());
 
   reactor_thread_->join();
   delete reactor_thread_;
   reactor_thread_ = nullptr;
-  DLOG(INFO)<< __FUNCTION__;
+  DLOG(INFO)<< "Reactor [" << this << "] is released.";
 }
 
 void Reactor::Start() {
@@ -89,19 +91,19 @@ void Reactor::Join() {
   reactor_thread_->join();
 }
 
-void Reactor::SetupMainReactor(int listen_sd, Reactor* sub_reactor) {
+void Reactor::SetupMainReactor(int listen_sd, ReactorBase* sub_reactor_base) {
   CHECK(type_ == TYPE_UNDEFINED);
   DLOG(INFO)<< "Setup main reactor.";
-  std::shared_ptr<EventBase> event_base = std::make_shared<EventBase>();
-  event_base->base = base_;
-  event_base->reactor = this;
-  eventbases_.push_back(event_base);
-  listen_event_ = event_new(base_, listen_sd, EV_READ | EV_PERSIST, OnAccept,
-                            event_base.get());
+  listen_event_ = event_new(reactor_base_->event_base(), listen_sd,
+  EV_READ | EV_PERSIST,
+                            OnAccept, reactor_base_.get());
   CHECK_NOTNULL(listen_event_);
-  event_add(listen_event_, nullptr);
-  sub_reactor_ = sub_reactor;
-  CHECK_NOTNULL(sub_reactor_);
+  struct timeval tv;
+  tv.tv_sec = 1;
+  tv.tv_usec = 0;
+  event_add(listen_event_, &tv);
+  CHECK_NOTNULL(sub_reactor_base);
+  sub_reactor_base_ = sub_reactor_base;
   type_ = TYPE_MAIN_REACTOR;
 }
 
@@ -111,18 +113,19 @@ void Reactor::SetupSubReactor() {
   type_ = TYPE_SUB_REACTOR;
 }
 
-void Reactor::CreateListener(int client_sd) {
+void Reactor::CreateEventMonitor(const std::shared_ptr<Session>& session) {
   CHECK(type_ == TYPE_MAIN_REACTOR);
-  std::shared_ptr<EventBase> event_base = std::make_shared<EventBase>();
-  event_base->base = base_;
-  event_base->reactor = sub_reactor_;
-  eventbases_.push_back(event_base);
+  if (session == nullptr) {
+    return;
+  }
   struct bufferevent* buffer_event = bufferevent_socket_new(
-      sub_reactor_->base(), client_sd, BEV_OPT_CLOSE_ON_FREE);
+      sub_reactor_base_->event_base(), session->sockfd(),
+      BEV_OPT_CLOSE_ON_FREE);
   CHECK_NOTNULL(buffer_event);
-  bufferevent_setcb(buffer_event, OnRead, nullptr, OnStatusReport,
-                    event_base.get());
-  bufferevent_enable(buffer_event, EV_READ | EV_PERSIST);
+  bufferevent_setcb(buffer_event, OnRecvData, nullptr, OnStatusReport,
+                    sub_reactor_base_);
+  CHECK(0 == bufferevent_enable(buffer_event, EV_READ | EV_PERSIST));
+  session->SetBufferEvent(buffer_event);
 }
 
 void Reactor::AddSession(const std::shared_ptr<Session>& session) {
@@ -152,20 +155,21 @@ void Reactor::OnServiceEventHandler(
 void Reactor::ReactorMainloop() {
   std::unique_lock<std::mutex> lock(mutex_);
   cond_var_.wait(lock, [this] {return running_;});
-  DLOG(INFO)<< "Reactor start up successful, come to main loop.";
-  event_base_dispatch(base_);
+  DLOG(INFO)<< "Reactor ["<< this << "] start up successful, come to main loop.";
+  event_base_dispatch(reactor_base_->event_base());
 }
 
 static void OnAccept(int listen_sd, short event, void* args) {
-  EventBase* event_base = (EventBase *) args;
-  CHECK_NOTNULL(event_base);
-  CHECK_NOTNULL(event_base->base);
+  ReactorBase* reactor_base = (ReactorBase *) args;
+  CHECK_NOTNULL(reactor_base);
+  CHECK_NOTNULL(reactor_base->event_base());
   struct sockaddr_in client;
   socklen_t size = sizeof(client);
   memset(&client, 0, sizeof(client));
   int client_sd = accept(listen_sd, (struct sockaddr *) &client, &size);
   CHECK_STATUS(WARNING, client_sd);
   CHECK(client_sd > 0);
+  CHECK_STATUS(FATAL, evutil_make_socket_nonblocking(client_sd));
 
   std::shared_ptr<Session> session = std::make_shared<SessionImpl>();
   session->set_remote_port(ntohs(client.sin_port));
@@ -175,31 +179,32 @@ static void OnAccept(int listen_sd, short event, void* args) {
   session->set_update_time(GetLocalDate());
   session->set_session_id(
       session->remote_ip() + ":" + std::to_string(session->remote_port()));
-  Reactor* reactor = (Reactor *) event_base->reactor;
+  DLOG(INFO)<< "Accept remote client : " << session->session_id();
+  Reactor* reactor = (Reactor *) reactor_base->reactor();
   CHECK_NOTNULL(reactor);
   reactor->AddSession(session);
-  reactor->CreateListener(client_sd);
+  reactor->CreateEventMonitor(reactor->GetSession(session->session_id()));
 }
 
-static void OnRead(struct bufferevent *buffer_event, void *ctx) {
-  EventBase* event_base = (EventBase *) ctx;
-  CHECK_NOTNULL(event_base);
-  CHECK_NOTNULL(event_base->base);
+static void OnRecvData(struct bufferevent *buffer_event, void *ctx) {
+  ReactorBase* reactor_base = (ReactorBase *) ctx;
+  CHECK_NOTNULL(reactor_base);
+  CHECK_NOTNULL(reactor_base->event_base());
   std::shared_ptr<ServiceEvent> service_event =
       std::make_shared<ServiceEvent>();
   service_event->set_type(ServiceEvent::TPYE_READ);
   service_event->set_buffer_event(buffer_event);
   service_event->set_ctx(ctx);
   // TODO : Push the event to thread-pool
-  Reactor* reactor = (Reactor *) event_base->reactor;
+  Reactor* reactor = (Reactor *) reactor_base->reactor();
   reactor->OnServiceEventHandler(service_event);
 }
 
 static void OnStatusReport(struct bufferevent *buffer_event, short event,
                            void *ctx) {
-  EventBase* event_base = (EventBase *) ctx;
-  CHECK_NOTNULL(event_base);
-  CHECK_NOTNULL(event_base->base);
+  ReactorBase* reactor_base = (ReactorBase *) ctx;
+  CHECK_NOTNULL(reactor_base);
+  CHECK_NOTNULL(reactor_base->event_base());
   evutil_socket_t sockfd = bufferevent_getfd(buffer_event);
   DLOG(INFO)<< "Socket (" << sockfd << ") has new status to report : ";
   switch (event) {
@@ -216,8 +221,7 @@ static void OnStatusReport(struct bufferevent *buffer_event, short event,
       default:
       break;
     }
-  bufferevent_free(buffer_event);
-  Reactor* reactor = (Reactor *) event_base->reactor;
+  Reactor* reactor = (Reactor *) reactor_base->reactor();
   CHECK_NOTNULL(reactor);
   reactor->DeleteSession(
       GetIpAdressBySocket(sockfd) + ":" + GetPortBySocket(sockfd));
