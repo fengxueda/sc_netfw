@@ -5,8 +5,8 @@
  *      Author: xueda
  */
 
-#ifndef SRC_NETWORK_REACTOR_H_
-#define SRC_NETWORK_REACTOR_H_
+#ifndef SRC_NETWORK_REACTOR_H_BAK_
+#define SRC_NETWORK_REACTOR_H_BAK_
 
 #include <mutex>
 #include <thread>
@@ -98,4 +98,4 @@ class ReactorBase {
 
 } /* namespace network */
 
-#endif /* SRC_NETWORK_REACTOR_H_ */
+#endif /* SRC_NETWORK_REACTOR_H_BAK_ */

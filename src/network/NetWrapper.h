@@ -24,20 +24,16 @@ class NetWrapper {
   void Launch();
 
  private:
-  void TcpServerInit();
-  void TcpServerDestory();
-
   void CreateReactors();
   void CreateDemutiplexor();
   void CreateSessionManager();
   void ReleaseComponents();
 
-  static const unsigned int kServerPort = 8802; // FIXME : For debug
-  static const int kMaxListenCount = 2048;  // FIXME : For debug
+  static const int kSubReactorCount = 3;  // FIXME : For debug
 
   int listen_sd_;
   std::unique_ptr<Reactor> main_reactor_;
-  std::unique_ptr<Reactor> sub_reactor_;
+  std::vector<std::shared_ptr<Reactor>> sub_reactors_;
   std::unique_ptr<EventDemutiplexor> event_demutiplexor_;
   std::unique_ptr<SessionManager> session_manager_;
 };
