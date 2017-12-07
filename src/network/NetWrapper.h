@@ -11,6 +11,10 @@
 #include <vector>
 #include <memory>
 
+namespace plugin {
+class ServiceHandler;
+}
+
 namespace network {
 
 class MainReactor;
@@ -29,6 +33,7 @@ class NetWrapper {
   void CreateReactors();
   void CreateDemutiplexor();
   void CreateSessionManager();
+  void CreateServiceHandler();
   void ReleaseComponents();
 
   static const int kThreadCount = 4;      // FIXME : For debug
@@ -39,6 +44,7 @@ class NetWrapper {
   std::vector<std::shared_ptr<SubReactor>> sub_reactors_;
   std::unique_ptr<EventDemutiplexor> event_demutiplexor_;
   std::unique_ptr<SessionManager> session_manager_;
+  std::unique_ptr<plugin::ServiceHandler> service_handler_;
 };
 
 } /* namespace network */

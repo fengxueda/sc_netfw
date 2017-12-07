@@ -15,6 +15,7 @@
 #include "SessionManager.h"
 #include "MainReactor.h"
 #include "SubReactor.h"
+#include "plugin/ServiceHandler.h"
 
 #define CHECK_STATUS(_level_,_expr_)                                                \
     do {                                                                            \
@@ -40,15 +41,16 @@ void NetWrapper::Launch() {
   CreateSessionManager();
   CreateReactors();
   CreateDemutiplexor();
+  CreateServiceHandler();
 
   main_reactor_->Start();
   for (auto sub_ractor : sub_reactors_) {
     sub_ractor->Start();
   }
 
-//  main_reactor_->Join();
+  main_reactor_->Join();
   for (auto sub_reactor : sub_reactors_) {
-//    sub_reactor->Join();
+    sub_reactor->Join();
   }
 }
 
@@ -86,6 +88,14 @@ void NetWrapper::CreateSessionManager() {
   DLOG(INFO)<< "Create Session manager successful.";
 }
 
+void NetWrapper::CreateServiceHandler() {
+  service_handler_.reset(new plugin::ServiceHandler());
+  CHECK_NOTNULL(service_handler_.get());
+  event_demutiplexor_->AddCallback(
+      std::bind(&plugin::ServiceHandler::OnHandler, service_handler_.get(),
+                std::placeholders::_1, std::placeholders::_2));
+}
+
 void NetWrapper::ReleaseComponents() {
   session_manager_.reset();
   event_demutiplexor_.reset();
@@ -94,6 +104,7 @@ void NetWrapper::ReleaseComponents() {
 }
 
 }
+
 /* namespace network */
 
 #undef CHECK_STATUS

@@ -1,6 +1,6 @@
 ROOT = $(shell pwd)
 SRC_DIR = ${ROOT}/src
-MODULE_DIR = ${SRC_DIR}/storage ${SRC_DIR}/network ${SRC_DIR}/misc
+MODULE_DIR = ${SRC_DIR}/storage ${SRC_DIR}/network ${SRC_DIR}/misc ${SRC_DIR}/plugin
 BUILD = ${ROOT}/build
 TARGET = ${ROOT}/build/libnet-wrapper.a
 
