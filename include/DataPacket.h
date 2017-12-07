@@ -38,6 +38,9 @@ class DataPacket {
     }
   }
 
+  const unsigned char *data() const {
+    return data_;
+  }
   const int capacity() const {
     return capacity_;
   }
@@ -73,6 +76,8 @@ class DataPacket {
       memcpy(buffer + length_, src, size);
       length_ += size;
       data_ = buffer;
+    } else {
+      memcpy(data_, src, size);
     }
   }
   void CapacityExpand(int size) {

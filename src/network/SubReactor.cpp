@@ -103,7 +103,7 @@ void SubReactor::OnDataRecv(std::shared_ptr<Session>& session, int event,
     switch (nbyte) {
       case 0: {
         DLOG(WARNING)<< "The connection [" << session->session_id()
-        << "] closed by the other size.";
+        << "] closed by the other side.";
         selector_->DeleteEvent(session->sockfd());
         selector_->ReleaseConnection(session);
         return;
@@ -122,6 +122,7 @@ void SubReactor::OnDataRecv(std::shared_ptr<Session>& session, int event,
     /* Push data to datagram */
     datagram->PushBack(buffer, nbyte);
   } while (1);
+
   message->set_session(session);
   message->set_datagram(datagram);
 
