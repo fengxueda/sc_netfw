@@ -8,11 +8,13 @@
 #ifndef SRC_NETWORK_NETWRAPPER_H_
 #define SRC_NETWORK_NETWRAPPER_H_
 
+#include <vector>
 #include <memory>
 
 namespace network {
 
-class Reactor;
+class MainReactor;
+class SubReactor;
 class EventDemutiplexor;
 class SessionManager;
 
@@ -29,11 +31,12 @@ class NetWrapper {
   void CreateSessionManager();
   void ReleaseComponents();
 
+  static const int kThreadCount = 4;      // FIXME : For debug
   static const int kSubReactorCount = 3;  // FIXME : For debug
 
   int listen_sd_;
-  std::unique_ptr<Reactor> main_reactor_;
-  std::vector<std::shared_ptr<Reactor>> sub_reactors_;
+  std::unique_ptr<MainReactor> main_reactor_;
+  std::vector<std::shared_ptr<SubReactor>> sub_reactors_;
   std::unique_ptr<EventDemutiplexor> event_demutiplexor_;
   std::unique_ptr<SessionManager> session_manager_;
 };

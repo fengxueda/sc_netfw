@@ -63,8 +63,10 @@ class Selector {
   virtual ~Selector();
 
   void Start();
+  void Join();
 
-  void SetAcceptedCallback(const std::function<void(int, int, void *)>& callback);
+  void SetAcceptedCallback(
+      const std::function<void(int, int, void *)>& callback);
   void SetDataRecvCallback(
       const std::function<void(std::shared_ptr<Session>&, int, void *)>& callback);
   void SetDataSendCallback(
@@ -86,10 +88,12 @@ class Selector {
   std::shared_ptr<Session> GetSession(const std::string& session_id);
 
   void AddEvent(const std::shared_ptr<ListenEvent>& listen_event);
-  void DeleteEvent(const std::shared_ptr<ListenEvent>& listen_event);
+  void DeleteEvent(int sockfd);
+  void ReleaseConnection(const std::shared_ptr<Session>& session);
 
  private:
   void SelectorMainloop();
+  bool CheckStatusReport(const std::shared_ptr<Session>& session, short event);
 
   bool running_;
   std::thread* selector_;
@@ -98,7 +102,7 @@ class Selector {
 
   std::mutex mutex_;
   std::condition_variable cond_var_;
-  std::unordered_map<std::string, struct event*> events_;
+  std::unordered_map<int, struct event*> events_;
 
   std::function<void(int, int, void *)> callback_accept_;
   std::function<void(std::shared_ptr<Session>&, int, void *)> callback_recv_;

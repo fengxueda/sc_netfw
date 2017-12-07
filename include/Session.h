@@ -23,7 +23,6 @@ class Session {
   }
 
   virtual void SendMessage(unsigned char* data, int size) = 0;
-  virtual void SetBufferEvent(const struct bufferevent* buffer_event) = 0;
 
   const std::string& session_id() const {
     return session_id_;

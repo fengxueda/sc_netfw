@@ -20,11 +20,10 @@ class SessionImpl : public Session {
   SessionImpl();
   virtual ~SessionImpl();
 
-  void SetBufferEvent(const struct bufferevent* buffer_event);
   void SendMessage(unsigned char *data, int size);
 
  private:
-  struct bufferevent* buffer_event_;
+
 };
 
 } /* namespace network */

@@ -8,11 +8,15 @@
 #include <glog/logging.h>
 #include "ServiceWorker.h"
 #include "EventDemutiplexor.h"
-#include "ServiceEvent.h"
+#include "ServiceMessage.h"
+#include "Session.h"
 
 namespace network {
 
-EventDemutiplexor::EventDemutiplexor() {
+EventDemutiplexor::EventDemutiplexor(int thread_count)
+    : worker_count_(0) {
+  worker_count_ = thread_count;
+  /* 顺序不能变 */
   CreateServiceWorkers();
   RegisterEventDispatcher();
 }
@@ -21,8 +25,8 @@ EventDemutiplexor::~EventDemutiplexor() {
   for (auto worker : workers_) {
     worker->Stop();
   }
-  for (unsigned int index = 0; index < kThreadCount; index++) {
-    events_.push(nullptr);
+  for (int index = 0; index < worker_count_; index++) {
+    messages_.push(nullptr);
     cond_var_.notify_all();
   }
   for (auto worker : workers_) {
@@ -32,7 +36,7 @@ EventDemutiplexor::~EventDemutiplexor() {
 }
 
 void EventDemutiplexor::CreateServiceWorkers() {
-  for (int index = 0; index < kThreadCount; index++) {
+  for (int index = 0; index < worker_count_; index++) {
     std::shared_ptr<ServiceWorker> worker = std::make_shared<ServiceWorker>();
     CHECK_NOTNULL(worker.get());
     workers_.push_back(worker);
@@ -46,33 +50,37 @@ void EventDemutiplexor::RegisterEventDispatcher() {
 }
 
 void EventDemutiplexor::AddCallback(
-    std::function<void(std::shared_ptr<ServiceEvent> &)>& callback) {
+    const std::function<
+        void(const std::shared_ptr<Session> &,
+             const std::shared_ptr<ServiceMessage> &)>& callback) {
   callbacks_.push_back(callback);
 }
 
 void EventDemutiplexor::PushEventToDispatcher(
-    const std::shared_ptr<ServiceEvent>& event) {
+    const std::shared_ptr<Session>& session,
+    const std::shared_ptr<ServiceMessage>& message) {
   std::lock_guard<std::mutex> lock(mutex_);
-  events_.push(event);
+  messages_.push(message);
   cond_var_.notify_one();
 }
 
 void EventDemutiplexor::EventDispatcher() {
-  std::shared_ptr<ServiceEvent> event;
+  std::shared_ptr<ServiceMessage> message;
   {
     std::unique_lock<std::mutex> lock(mutex_);
-    cond_var_.wait(lock, [this] {return !events_.empty();});
-    event = events_.front();
-    events_.pop();
+    cond_var_.wait(lock, [this] {return !messages_.empty();});
+    message = messages_.front();
+    messages_.pop();
   }
-  if (event == nullptr) {
+  if (message == nullptr) {
     return;
   }
 
-  std::lock_guard<std::mutex> lock(event->mutex());
+  std::lock_guard<std::mutex> lock(message->mutex());
   for (auto cb_function : callbacks_) {
-    cb_function(event);
+    cb_function(nullptr ,message);
   }
 }
 
 } /* namespace network */
+

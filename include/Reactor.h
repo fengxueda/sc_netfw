@@ -16,6 +16,7 @@ namespace network {
 class Session;
 class SessionManager;
 
+template<typename T>
 class Reactor {
  public:
   Reactor(SessionManager* session_manager)
@@ -26,12 +27,17 @@ class Reactor {
   virtual ~Reactor() {
   }
 
+  virtual void Start() = 0;
+  virtual void Join() = 0;
+
   /* 设置 This Reactor 通知回调函数 */
   virtual void SetNotifyCallback(
-      const std::function<void(const std::shared_ptr<Session>&)>& callback) = 0;
+      const std::function<
+          void(const std::shared_ptr<Session>&, const std::shared_ptr<T>&)>& callback) = 0;
   /* 设置 This Reactor 被通知回调函数 */
   virtual void SetNotifiedCallback(
-      const std::function<void(const std::shared_ptr<Session>&)>& callback) = 0;
+      const std::function<
+          void(const std::shared_ptr<Session>&, const std::shared_ptr<T>&)>& callback) = 0;
 
  private:
   SessionManager* session_manager_;

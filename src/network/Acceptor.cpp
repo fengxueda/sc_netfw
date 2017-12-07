@@ -64,6 +64,14 @@ Acceptor::~Acceptor() {
   DLOG(INFO)<< __FUNCTION__;
 }
 
+void Acceptor::Start() {
+  Selector::Start();
+}
+
+void Acceptor::Join() {
+  Selector::Join();
+}
+
 void Acceptor::SetAcceptedNotifyCallback(
     const std::function<void(const std::shared_ptr<Session> &)>& callback) {
   callback_ = callback;

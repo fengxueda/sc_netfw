@@ -15,17 +15,21 @@
 
 namespace network {
 
+class Session;
 class ServiceWorker;
-class ServiceEvent;
+class ServiceMessage;
 
 class EventDemutiplexor {
  public:
-  EventDemutiplexor();
+  EventDemutiplexor(int thread_count);
   virtual ~EventDemutiplexor();
 
   void AddCallback(
-      std::function<void(std::shared_ptr<ServiceEvent>&)>& callback);
-  void PushEventToDispatcher(const std::shared_ptr<ServiceEvent>& event);
+      const std::function<
+          void(const std::shared_ptr<Session>&,
+               const std::shared_ptr<ServiceMessage>&)>& callback);
+  void PushEventToDispatcher(const std::shared_ptr<Session>& session,
+                             const std::shared_ptr<ServiceMessage>& message);
 
  private:
   void CreateServiceWorkers();
@@ -33,13 +37,15 @@ class EventDemutiplexor {
 
   void EventDispatcher();
 
-  static const int kThreadCount = 4;
-
+  int worker_count_;
   std::mutex mutex_;
   std::condition_variable cond_var_;
-  std::queue<std::shared_ptr<ServiceEvent>> events_;
+  std::queue<std::shared_ptr<ServiceMessage>> messages_;
   std::vector<std::shared_ptr<ServiceWorker>> workers_;
-  std::vector<std::function<void(std::shared_ptr<ServiceEvent>&)>> callbacks_;
+  std::vector<
+      std::function<
+          void(const std::shared_ptr<Session>&,
+               const std::shared_ptr<ServiceMessage>&)>> callbacks_;
 };
 
 } /* namespace network */

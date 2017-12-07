@@ -23,6 +23,8 @@ class Acceptor : private Selector {
            int listen_count);
   virtual ~Acceptor();
 
+  void Start();
+  void Join();
   void SetAcceptedNotifyCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
 

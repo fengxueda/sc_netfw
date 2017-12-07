@@ -41,10 +41,15 @@ void NetWrapper::Launch() {
   CreateReactors();
   CreateDemutiplexor();
 
+  main_reactor_->Start();
+  for (auto sub_ractor : sub_reactors_) {
+    sub_ractor->Start();
+  }
+
 //  main_reactor_->Join();
-//  for (auto sub_reactor : sub_reactors_) {
+  for (auto sub_reactor : sub_reactors_) {
 //    sub_reactor->Join();
-//  }
+  }
 }
 
 void NetWrapper::CreateReactors() {
@@ -52,22 +57,26 @@ void NetWrapper::CreateReactors() {
   main_reactor_.reset(new MainReactor(session_manager_.get()));
   CHECK_NOTNULL(main_reactor_.get());
   for (unsigned int index = 0; index < kSubReactorCount; index++) {
-    std::shared_ptr<Reactor> sub_reactor = std::make_shared<SubReactor>(
+    std::shared_ptr<SubReactor> sub_reactor = std::make_shared<SubReactor>(
         session_manager_.get());
     CHECK_NOTNULL(sub_reactor.get());
+    main_reactor_->SetNotifyCallback(
+        std::bind(&SubReactor::OnNotified, sub_reactor.get(),
+                  std::placeholders::_1, std::placeholders::_2));
     sub_reactors_.push_back(sub_reactor);
   }
 }
 
 void NetWrapper::CreateDemutiplexor() {
-  event_demutiplexor_.reset(new EventDemutiplexor());
+  event_demutiplexor_.reset(new EventDemutiplexor(kThreadCount));
   CHECK_NOTNULL(event_demutiplexor_.get());
-//  for (auto sub_reactor : sub_reactors_) {
-//    CHECK_NOTNULL(sub_reactor.get());
-//    sub_reactor->SetNotifyCallback(
-//        std::bind(&EventDemutiplexor::PushEventToDispatcher,
-//                  event_demutiplexor_.get(), std::placeholders::_1));
-//  }
+  for (auto sub_reactor : sub_reactors_) {
+    CHECK_NOTNULL(sub_reactor.get());
+    sub_reactor->SetNotifyCallback(
+        std::bind(&EventDemutiplexor::PushEventToDispatcher,
+                  event_demutiplexor_.get(), std::placeholders::_1,
+                  std::placeholders::_2));
+  }
   DLOG(INFO)<< "Create demutiplexor successful.";
 }
 

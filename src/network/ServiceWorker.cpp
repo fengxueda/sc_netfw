@@ -15,6 +15,7 @@ ServiceWorker::ServiceWorker()
       worker_(nullptr) {
   worker_ = new std::thread(&ServiceWorker::ServiceProcessor, this);
   CHECK_NOTNULL(worker_);
+  DLOG(INFO) << "Service worker [" << worker_->get_id() << "] start up.";
 }
 
 ServiceWorker::~ServiceWorker() {

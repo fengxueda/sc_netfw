@@ -158,24 +158,24 @@ std::string GetMd5Code(const std::string& source) {
   return md5_code;
 }
 
-int GetErrorCodeBySocket(int socket_id) {
+int GetErrorCodeBySocket(int sockfd) {
   int errcode;
   unsigned int size = sizeof(errcode);
-  getsockopt(socket_id, SOL_SOCKET, SO_ERROR, (void *) &errcode, &size);
+  getsockopt(sockfd, SOL_SOCKET, SO_ERROR, (void *) &errcode, &size);
   return errcode;
 }
 
 const std::string GetIpAdressBySocket(int sockfd) {
   struct sockaddr_in address;
   socklen_t size = sizeof(address);
-  getsockname(sockfd, (struct sockaddr *) &address, &size);
+  getpeername(sockfd, (struct sockaddr *) &address, &size);
   return std::string(inet_ntoa(address.sin_addr));
 }
 
 const std::string GetPortBySocket(int sockfd) {
   struct sockaddr_in address;
   socklen_t size = sizeof(address);
-  getsockname(sockfd, (struct sockaddr *) &address, &size);
+  getpeername(sockfd, (struct sockaddr *) &address, &size);
   return std::to_string(ntohs(address.sin_port));
 }
 
