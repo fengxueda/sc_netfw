@@ -27,36 +27,34 @@
 
 namespace network {
 
-Acceptor::Acceptor(SessionManager* session_manager)
-    : listener_(-1),
-      session_manager_(nullptr) {
+Acceptor::Acceptor(SessionManager* session_manager, unsigned short port,
+                   int listen_count)
+    : Selector(session_manager),
+      listener_(-1) {
   listener_ = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
   CHECK(listener_ > 0);
 
   struct sockaddr_in server;
   memset(&server, 0, sizeof(struct sockaddr_in));
   server.sin_family = AF_INET;
-  server.sin_port = htons(kServerPort);
+  server.sin_port = htons(port);
   server.sin_addr.s_addr = htonl(INADDR_ANY);
   CHECK_STATUS(FATAL, evutil_make_listen_socket_reuseable(listener_));
   CHECK_STATUS(
       FATAL,
       bind(listener_, (struct sockaddr * ) &server, sizeof(struct sockaddr)));
-  CHECK_STATUS(FATAL, listen(listener_, kMaxListenCount));
+  CHECK_STATUS(FATAL, listen(listener_, listen_count));
   CHECK_STATUS(FATAL, evutil_make_socket_nonblocking(listener_));
-  DLOG(INFO)<< "Bind port(" << kServerPort << ") successful. Listening...";
+  DLOG(INFO)<< "Bind port(" << port << ") successful. Listening...";
 
-  CHECK_NOTNULL(session_manager);
-  session_manager_ = session_manager;
-  selector_.reset(new Selector(session_manager_));
-  selector_->SetAcceptCallback(
-      std::bind(&Acceptor::OnAcceptCallback, this, std::placeholders::_1,
+  SetAcceptedCallback(
+      std::bind(&Acceptor::OnAcceptedCallback, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3));
   std::shared_ptr<Selector::ListenEvent> event = std::make_shared<
       Selector::ListenEvent>();
   event->set_sockfd(listener_);
   event->set_type(Selector::TYPE_ACCEPT);
-  selector_->AddEvent(event);
+  AddEvent(event);
 }
 
 Acceptor::~Acceptor() {
@@ -66,12 +64,12 @@ Acceptor::~Acceptor() {
   DLOG(INFO)<< __FUNCTION__;
 }
 
-void Acceptor::SetAcceptNotifyCallback(
+void Acceptor::SetAcceptedNotifyCallback(
     const std::function<void(const std::shared_ptr<Session> &)>& callback) {
   callback_ = callback;
 }
 
-void Acceptor::OnAcceptCallback(int sockfd, int event, void *ctx) {
+void Acceptor::OnAcceptedCallback(int sockfd, int event, void *ctx) {
   struct sockaddr_in client;
   socklen_t size = sizeof(client);
   memset(&client, 0, sizeof(client));
@@ -89,12 +87,8 @@ void Acceptor::OnAcceptCallback(int sockfd, int event, void *ctx) {
   session->set_session_id(
       session->remote_ip() + ":" + std::to_string(session->remote_port()));
   DLOG(INFO)<< "Accept remote client : " << session->session_id();
-  session_manager_->AddSession(session);
-  OnNotifySubReactor(session_manager_->GetSession(session->session_id()));
-}
-
-void Acceptor::OnNotifySubReactor(const std::shared_ptr<Session>& session) {
-  if (session != nullptr) {
+  AddSession(session);
+  if (IsExistSession(session->session_id())) {
     callback_(session);
   }
 }

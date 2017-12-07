@@ -22,14 +22,19 @@ class SubReactor : public Reactor {
   SubReactor(SessionManager* session_manager);
   virtual ~SubReactor();
 
-  virtual void SetNotifyCallback(
+  void SetNotifyCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
-  virtual void OnNotify(const std::shared_ptr<Session>& session);
-  void OnDataRecv(std::shared_ptr<Session> &session, int event, void* ctx);
+  void SetNotifiedCallback(
+      const std::function<void(const std::shared_ptr<Session>&)>& callback);
 
  private:
+  void OnNotify(const std::shared_ptr<Session>& session);
+  void OnNotified(const std::shared_ptr<Session>& session);
+  void OnDataRecv(std::shared_ptr<Session> &session, int event, void* ctx);
+
   std::unique_ptr<Selector> selector_;
-  std::function<void(const std::shared_ptr<Session>&)> callback_;
+  std::function<void(const std::shared_ptr<Session>&)> notify_callback_;
+  std::function<void(const std::shared_ptr<Session>&)> notified_callback_;
 };
 
 } /* namespace network */

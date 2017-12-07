@@ -27,17 +27,26 @@ SubReactor::~SubReactor() {
 
 void SubReactor::SetNotifyCallback(
     const std::function<void(const std::shared_ptr<Session> &)>& callback) {
-  callback_ = callback;
+  notify_callback_ = callback;
+}
+
+void SubReactor::SetNotifiedCallback(
+    const std::function<void(const std::shared_ptr<Session> &)>& callback) {
+  notified_callback_ = callback;
+}
+
+void SubReactor::OnNotify(const std::shared_ptr<Session>& session) {
+  notify_callback_(session);
 }
 
 /* SubReactor增加一个读事件 */
-void SubReactor::OnNotify(const std::shared_ptr<Session>& session) {
+void SubReactor::OnNotified(const std::shared_ptr<Session>& session) {
   std::shared_ptr<Selector::ListenEvent> event = std::make_shared<
       Selector::ListenEvent>();
   event->set_sockfd(session->sockfd());
   event->set_type(Selector::TYPE_READ);
   selector_->AddEvent(event);
-  callback_(session);
+  notified_callback_(session);
 }
 
 void SubReactor::OnDataRecv(std::shared_ptr<Session>& session, int event,

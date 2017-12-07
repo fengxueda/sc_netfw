@@ -64,10 +64,12 @@ class Selector {
 
   void Start();
 
-  void SetAcceptCallback(const std::function<void(int, int, void *)>& callback);
+  void SetAcceptedCallback(const std::function<void(int, int, void *)>& callback);
   void SetDataRecvCallback(
       const std::function<void(std::shared_ptr<Session>&, int, void *)>& callback);
   void SetDataSendCallback(
+      const std::function<void(std::shared_ptr<Session>&, int, void *)>& callback);
+  void SetSignalCallback(
       const std::function<void(std::shared_ptr<Session>&, int, void *)>& callback);
 
   void OnAcceptCallback(int sockfd, int event, void *ctx);
@@ -78,7 +80,11 @@ class Selector {
   void OnDataSendCallback(std::shared_ptr<Session>& session, int event,
                           void *ctx);
 
+  bool IsExistSession(const std::string& session_id);
+  void AddSession(const std::shared_ptr<Session>& session);
+  void DeleteSession(const std::string& session_id);
   std::shared_ptr<Session> GetSession(const std::string& session_id);
+
   void AddEvent(const std::shared_ptr<ListenEvent>& listen_event);
   void DeleteEvent(const std::shared_ptr<ListenEvent>& listen_event);
 

@@ -10,31 +10,26 @@
 
 #include <memory>
 #include <functional>
+#include "Selector.h"
 
 namespace network {
 
 class Session;
-class Selector;
 class SessionManager;
 
-class Acceptor {
+class Acceptor : private Selector {
  public:
-  Acceptor(SessionManager* session_manager);
+  Acceptor(SessionManager* session_manager, unsigned short port,
+           int listen_count);
   virtual ~Acceptor();
 
-  void SetAcceptNotifyCallback(
+  void SetAcceptedNotifyCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
 
  private:
-  void OnAcceptCallback(int sockfd, int event, void *ctx);
-  void OnNotifySubReactor(const std::shared_ptr<Session>& session);
-
-  static const int kServerPort = 8802;
-  static const int kMaxListenCount = 2048;
+  void OnAcceptedCallback(int sockfd, int event, void *ctx);
 
   int listener_;
-  SessionManager* session_manager_;
-  std::unique_ptr<Selector> selector_;
   std::function<void(const std::shared_ptr<Session>&)> callback_;
 };
 

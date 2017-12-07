@@ -22,13 +22,21 @@ class MainReactor : public Reactor {
   MainReactor(SessionManager* session_manager);
   virtual ~MainReactor();
 
-  virtual void SetNotifyCallback(
-      const std::function<void(const std::shared_ptr<Session>& )>& callback);
-  virtual void OnNotify(const std::shared_ptr<Session>& session);
+  void SetNotifyCallback(
+      const std::function<void(const std::shared_ptr<Session>&)>& callback);
+  void SetNotifiedCallback(
+      const std::function<void(const std::shared_ptr<Session>&)>& callback);
 
  private:
+  void OnNotify(const std::shared_ptr<Session>& session);
+  void OnNotified(const std::shared_ptr<Session>& session);
+
+  static const int kServerPort = 8802;
+  static const int kMaxListenCount = 2048;
+
   std::unique_ptr<Acceptor> acceptor_;
   std::function<void(const std::shared_ptr<Session>& session)> notify_callback_;
+  std::function<void(const std::shared_ptr<Session>& session)> notified_callback_;
 };
 
 } /* namespace network */

@@ -53,7 +53,7 @@ void Selector::Start() {
   DLOG(INFO)<< "Try to start up selector.";
 }
 
-void Selector::SetAcceptCallback(
+void Selector::SetAcceptedCallback(
     const std::function<void(int, int, void*)>& callback) {
   callback_accept_ = callback;
 }
@@ -66,6 +66,11 @@ void Selector::SetDataRecvCallback(
 void Selector::SetDataSendCallback(
     const std::function<void(std::shared_ptr<Session> &, int, void*)>& callback) {
   callback_send_ = callback;
+}
+
+void Selector::SetSignalCallback(
+    const std::function<void(std::shared_ptr<Session> &, int, void*)>& callback) {
+  callback_signal_ = callback;
 }
 
 void Selector::OnAcceptCallback(int sockfd, int event, void* ctx) {
@@ -87,6 +92,17 @@ void Selector::OnDataSendCallback(std::shared_ptr<Session>& session, int event,
   callback_send_(session, event, ctx);
 }
 
+bool Selector::IsExistSession(const std::string& session_id) {
+  return session_manager_->Exist(session_id);
+}
+
+void Selector::AddSession(const std::shared_ptr<Session>& session) {
+  session_manager_->AddSession(session);
+}
+
+void Selector::DeleteSession(const std::string& session_id) {
+  session_manager_->DeleteSession(session_id);
+}
 std::shared_ptr<Session> Selector::GetSession(const std::string& session_id) {
   return session_manager_->GetSession(session_id);
 }
@@ -161,5 +177,4 @@ static void OnSignal(evutil_socket_t sockfd, short event, void *ctx) {
 }
 
 } /* namespace network */
-
 

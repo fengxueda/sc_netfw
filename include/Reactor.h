@@ -26,14 +26,18 @@ class Reactor {
   virtual ~Reactor() {
   }
 
+  /* 设置 This Reactor 通知回调函数 */
   virtual void SetNotifyCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback) = 0;
-  virtual void OnNotify(const std::shared_ptr<Session>& session) = 0;
+  /* 设置 This Reactor 被通知回调函数 */
+  virtual void SetNotifiedCallback(
+      const std::function<void(const std::shared_ptr<Session>&)>& callback) = 0;
 
  private:
   SessionManager* session_manager_;
 };
 
-}  // namespace network
+}
+// namespace network
 
 #endif /* INCLUDE_REACTOR_H_ */

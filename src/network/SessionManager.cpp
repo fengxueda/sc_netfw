@@ -31,6 +31,13 @@ void SessionManager::Stop() {
   running_ = false;
 }
 
+bool SessionManager::Exist(const std::string& session_id) {
+  if (nullptr != GetSession(session_id)) {
+    return true;
+  }
+  return false;
+}
+
 void SessionManager::AddSession(const std::shared_ptr<Session>& session) {
   std::lock_guard<std::mutex> lock(mutex_);
   if (sessions_.end() != sessions_.find(session->session_id())) {
