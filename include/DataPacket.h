@@ -70,14 +70,16 @@ class DataPacket {
     CHECK(size <= MAXSIZE);
     CHECK_NOTNULL(data_);
     if (capacity_ - length_ < size) {
-      unsigned char *buffer = new unsigned char[capacity_ + size];
+      unsigned char *buffer = new unsigned char[capacity_ + MAXSIZE];
       memcpy(buffer, data_, length_);
       delete[] data_;
       memcpy(buffer + length_, src, size);
       length_ += size;
+      capacity_ += MAXSIZE;
       data_ = buffer;
     } else {
-      memcpy(data_, src, size);
+      memcpy(data_ + length_, src, size);
+      length_ += size;
     }
   }
   void CapacityExpand(int size) {

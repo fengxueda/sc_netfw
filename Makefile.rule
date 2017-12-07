@@ -3,8 +3,10 @@ CXXFLAGS := -std=c++11 -Wall -g -O2
 INCLUDES := -I${ROOT}/include -I${ROOT}/src
 
 all : ${OBJ}
+	@echo "\033[1m\033[36m CXXFLAG = ${CXXFLAGS} \033[0m"
 ${OBJ} :%.o : %.cpp $(shell find ${ROOT} -name '*.h')
-	${CXX} -c ${CXXFLAGS} $< -o $@ ${INCLUDES}
+	@echo "\033[1m\033[35m Compile $< \033[0m"
+	@${CXX} -c ${CXXFLAGS} $< -o $@ ${INCLUDES}
 	@cp $@ ${ROOT}/build
 
 .PHONY clean : 

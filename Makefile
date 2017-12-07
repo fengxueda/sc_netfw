@@ -7,8 +7,8 @@ TARGET = ${ROOT}/build/libnet-wrapper.a
 export ROOT
 
 ${TARGET} : all
-	@ar -rv $@ $(shell find ${BUILD} -name '*.o')
-	@echo 'Build ${TARGET} successful...'
+	ar -rv $@ $(shell find ${BUILD} -name '*.o')
+	@echo "Build \033[1m\033[32m ${TARGET} \033[0m successful..."
 		
 all :
 	@for module in $(MODULE_DIR); 							\

@@ -195,16 +195,16 @@ void Selector::SelectorMainloop() {
 
 bool Selector::CheckStatusReport(const std::shared_ptr<Session>& session,
                                  short event) {
-  switch (event & 0xF0) {
-    case EV_CLOSED: {
-      DeleteEvent(session->sockfd());
-      ReleaseConnection(session);
-      return false;
-    }
-      break;
-    default:
-      break;
-  }
+//  switch (event & 0xF0) {
+//    case EV_CLOSED: {
+//      DeleteEvent(session->sockfd());
+//      ReleaseConnection(session);
+//      return false;
+//    }
+//      break;
+//    default:
+//      break;
+//  }
   return true;
 }
 

@@ -30,8 +30,7 @@ void ServiceHandler::AddPluginCallback(
 void ServiceHandler::OnHandler(
     const std::shared_ptr<network::Session>& session,
     const std::shared_ptr<network::ServiceMessage>& message) {
-  DLOG(INFO)<<"length " << message->datagram()->length()
-  << ", message : " << std::string((char *)message->datagram()->data());
+  DLOG(INFO)<<"Datagram length : " << message->datagram()->length();
   for (auto callback : callbacks_) {
     callback(session, message);
   }

@@ -8,8 +8,10 @@
 #ifndef SRC_NETWORK_SERVICEWORKER_H_
 #define SRC_NETWORK_SERVICEWORKER_H_
 
+#include <mutex>
 #include <thread>
 #include <functional>
+#include <condition_variable>
 
 namespace network {
 
@@ -27,6 +29,10 @@ class ServiceWorker {
   bool running_;
   std::thread* worker_;
   std::vector< std::function<void ()> > callbacks_;
+
+  std::mutex mutex_;
+  std::condition_variable cond_var_;
+
 };
 
 } /* namespace network */
