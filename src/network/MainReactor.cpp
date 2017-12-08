@@ -34,9 +34,14 @@ void MainReactor::Join() {
   acceptor_->Join();
 }
 
-void MainReactor::AddDataRecvCallback(
+void MainReactor::AddPushSessionCallback(
     const std::function<void(const std::shared_ptr<Session>&)>& callback) {
   recv_callbacks_.push_back(callback);
+}
+
+void MainReactor::OnEventAction(int type,
+                                const std::shared_ptr<Session>& session) {
+  acceptor_->OnEventAction(type, session);
 }
 
 void MainReactor::OnAcceptedNotify(const std::shared_ptr<Session>& session) {
@@ -44,12 +49,12 @@ void MainReactor::OnAcceptedNotify(const std::shared_ptr<Session>& session) {
 }
 
 void MainReactor::OnDataRecvNotify(const std::shared_ptr<Session>& session) {
-  DLOG(INFO)<<__FUNCTION__;
   for (auto callback : recv_callbacks_) {
     callback(session);
   }
 }
 
 }
+
 /* namespace network */
 

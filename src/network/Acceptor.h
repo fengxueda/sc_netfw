@@ -29,6 +29,7 @@ class Acceptor : private Selector {
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
   void SetDataRecvCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
+  void OnEventAction(int type, const std::shared_ptr<Session>& session);
 
  private:
   void OnAcceptedCallback(int sockfd, int event, void *ctx);

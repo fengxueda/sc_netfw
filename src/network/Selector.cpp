@@ -102,6 +102,13 @@ void Selector::OnSignalCallback(std::shared_ptr<Session>& session, int event,
 
 void Selector::OnDataRecvCallback(std::shared_ptr<Session>& session, int event,
                                   void* ctx) {
+  switch (event & 0xF0) {
+    case EV_ET:
+      DeleteEvent(session->sockfd());
+      break;
+    default:
+      break;
+  }
   callback_recv_(session, event, ctx);
 }
 
@@ -131,8 +138,8 @@ void Selector::AddEvent(const std::shared_ptr<ListenEvent>& listen_event) {
     return;
   }
   struct event* event = nullptr;
-  DLOG(INFO)<< "Add event : type = " << listen_event->type() << ", sockfd = "
-  << listen_event->sockfd();
+//  DLOG(INFO)<< "Add event : type = " << listen_event->type() << ", sockfd = "
+//  << listen_event->sockfd();
   switch (listen_event->type()) {
     case TYPE_READ: {
       event = event_new(base_, listen_event->sockfd(), EV_READ | EV_ET,
@@ -160,7 +167,7 @@ void Selector::AddEvent(const std::shared_ptr<ListenEvent>& listen_event) {
   CHECK_NOTNULL(event);
   CHECK(0 == event_add(event, nullptr));
   std::lock_guard<std::mutex> lock(mutex_);
-  if (listen_event->type() == TYPE_ACCEPT) {
+  if (events_.end() == events_.find(listen_event->sockfd())) {
     events_[listen_event->sockfd()] = event;
   }
 }

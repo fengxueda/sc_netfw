@@ -5,15 +5,14 @@
  *      Author: xueda
  */
 
+#include <sys/sysinfo.h>
 #include <glog/logging.h>
 #include "ServiceWorker.h"
 #include "MessageDemutiplexor.h"
 
 namespace network {
 
-MessageDemutiplexor::MessageDemutiplexor(int thread_count)
-    : worker_count_(0) {
-  worker_count_ = thread_count;
+MessageDemutiplexor::MessageDemutiplexor() {
   /* 顺序不能变 */
   CreateServiceWorkers();
   RegisterMessageDispatcher();
@@ -23,12 +22,16 @@ MessageDemutiplexor::~MessageDemutiplexor() {
   for (auto worker : workers_) {
     worker->Stop();
   }
-  for (int index = 0; index < worker_count_; index++) {
+  for (unsigned int index = 0; index < workers_.size(); index++) {
     messages_.push(nullptr);
     cond_var_.notify_all();
   }
   workers_.clear();
   DLOG(INFO)<< __FUNCTION__;
+}
+
+void MessageDemutiplexor::StartUp() {
+
 }
 
 void MessageDemutiplexor::OnPushMessage(
@@ -44,7 +47,7 @@ void MessageDemutiplexor::AddCallback(
 }
 
 void MessageDemutiplexor::CreateServiceWorkers() {
-  for (int index = 0; index < worker_count_; index++) {
+  for (int index = 0; index < get_nprocs_conf(); index++) {
     std::shared_ptr<ServiceWorker> worker = std::make_shared<ServiceWorker>();
     CHECK_NOTNULL(worker.get());
     workers_.push_back(worker);
@@ -77,4 +80,5 @@ void MessageDemutiplexor::OnMessageDispatch() {
 }
 
 } /* namespace network */
+
 

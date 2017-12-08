@@ -16,6 +16,7 @@
 #include "Session.h"
 #include "DataPacket.h"
 #include "ServiceMessage.h"
+#include "SessionManager.h"
 #include "Utils.h"
 
 #define CHECK_STATUS(_level_,_expr_)                                                \
@@ -30,8 +31,10 @@ namespace network {
 
 SubReactor::SubReactor(SessionManager* session_manager)
     : running_(false),
-      reactor_(nullptr) {
+      reactor_(nullptr),
+      session_manager_(nullptr) {
   CHECK_NOTNULL(session_manager);
+  session_manager_ = session_manager;
   reactor_ = new std::thread(&SubReactor::Mainloop, this);
   CHECK_NOTNULL(reactor_);
   std::stringstream stream;
@@ -60,10 +63,6 @@ void SubReactor::Stop() {
   running_ = false;
 }
 
-void SubReactor::OnSessionHandler(const std::shared_ptr<Session>& session) {
-  OnDataRecv(session);
-}
-
 void SubReactor::AddMainloopCallback(const std::function<void()>& callback) {
   std::lock_guard<std::mutex> lock(mutex_);
   mainloop_callbacks_.push_back(callback);
@@ -75,15 +74,9 @@ void SubReactor::AddPushMessageCallback(
   msg_callbacks_.push_back(callback);
 }
 
-void SubReactor::Mainloop() {
-  std::unique_lock<std::mutex> lock(mutex_);
-  cond_var_.wait(lock, [this] {return running_;});
-  DLOG(INFO)<< "SubReactor [" << reactor_id_ << "] start up.";
-  while (running_) {
-    for (auto callback : mainloop_callbacks_) {
-      callback();
-    }
-  }
+void SubReactor::SetEventActionCallback(
+    const std::function<void(int, const std::shared_ptr<Session> &)>& callback) {
+  ev_action_callback_ = callback;
 }
 
 #define MAXSIZE 4096
@@ -102,14 +95,14 @@ void SubReactor::OnDataRecv(const std::shared_ptr<Session>& session) {
       case 0: {
         DLOG(WARNING)<< "The connection [" << session->session_id()
         << "] closed by the other side.";
-        ev_action_callback_(0, session);
+        session_manager_->DeleteSession(session->session_id());
         return;
       }
       break;
       case -1: {
         DLOG(WARNING) << "The connection occurs error, message : "
         << strerror(GetErrorCodeBySocket(session->sockfd()));
-        ev_action_callback_(0, session);
+        session_manager_->DeleteSession(session->session_id());
         return;
       }
       break;
@@ -121,11 +114,23 @@ void SubReactor::OnDataRecv(const std::shared_ptr<Session>& session) {
   } while (1);
   message->set_session(session);
   message->set_datagram(datagram);
+  ev_action_callback_(Selector::TYPE_READ, session);
   for (auto callback : msg_callbacks_) {
     callback(message);
   }
 }
 #undef MAXSIZE
+
+void SubReactor::Mainloop() {
+  std::unique_lock<std::mutex> lock(mutex_);
+  cond_var_.wait(lock, [this] {return running_;});
+  DLOG(INFO)<< "SubReactor [" << reactor_id_ << "] start up.";
+  while (running_) {
+    for (auto callback : mainloop_callbacks_) {
+      callback();
+    }
+  }
+}
 
 } /* namespace network */
 

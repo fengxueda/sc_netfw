@@ -5,26 +5,23 @@
  *      Author: xueda
  */
 
+#include <sys/sysinfo.h>
 #include <glog/logging.h>
 #include "Session.h"
 #include "ServiceMessage.h"
+#include "SessionManager.h"
+#include "MainReactor.h"
 #include "SubReactor.h"
 #include "SessionDemutiplexor.h"
 
 namespace network {
 
-SessionDemutiplexor::SessionDemutiplexor(SessionManager* session_manager,
-                                         int thread_count) {
-  CHECK_NOTNULL(session_manager);
-  for (int index = 0; index < thread_count; index++) {
-    std::shared_ptr<SubReactor> reactor = std::make_shared<SubReactor>(
-        session_manager);
-    CHECK_NOTNULL(reactor.get());
-    reactor->AddMainloopCallback(
-        std::bind(&SessionDemutiplexor::OnSessionDispatch, this));
-    sub_reactors_[reactor->reactor_id()] = reactor;
-    reactor->Start();
-  }
+SessionDemutiplexor::SessionDemutiplexor() {
+  CreateSessionManager();
+  CreateMainReactor();
+  CreateSubReactors();
+  MakeRelationship();
+  StartUpReactors();
 }
 
 SessionDemutiplexor::~SessionDemutiplexor() {
@@ -37,6 +34,10 @@ SessionDemutiplexor::~SessionDemutiplexor() {
   }
   sub_reactors_.clear();
   DLOG(INFO)<< __FUNCTION__;
+}
+
+void SessionDemutiplexor::StartUp() {
+  main_reactor_->Join();
 }
 
 void SessionDemutiplexor::AddCallback(
@@ -64,11 +65,48 @@ void SessionDemutiplexor::OnSessionDispatch() {
     std::stringstream stream;
     stream << std::this_thread::get_id();
     if (sub_reactors_.find(stream.str()) != sub_reactors_.end()) {
-      sub_reactors_[stream.str()]->OnSessionHandler(session);
-
+      sub_reactors_[stream.str()]->OnDataRecv(session);
     }
   }
+}
 
+void SessionDemutiplexor::CreateSessionManager() {
+  session_manager_.reset(new SessionManager());
+  CHECK_NOTNULL(session_manager_.get());
+}
+
+void SessionDemutiplexor::CreateMainReactor() {
+  main_reactor_.reset(new MainReactor(session_manager_.get()));
+  CHECK_NOTNULL(main_reactor_.get());
+}
+
+void SessionDemutiplexor::CreateSubReactors() {
+  for (int index = 0; index < get_nprocs_conf(); index++) {
+    std::shared_ptr<SubReactor> reactor = std::make_shared<SubReactor>(
+        session_manager_.get());
+    CHECK_NOTNULL(reactor.get());
+    sub_reactors_[reactor->reactor_id()] = reactor;
+  }
+}
+
+void SessionDemutiplexor::MakeRelationship() {
+  main_reactor_->AddPushSessionCallback(
+      std::bind(&SessionDemutiplexor::OnPushSession, this,
+                std::placeholders::_1));
+  for (auto sub_reactor : sub_reactors_) {
+    sub_reactor.second->SetEventActionCallback(
+        std::bind(&MainReactor::OnEventAction, main_reactor_.get(),
+                  std::placeholders::_1, std::placeholders::_2));
+    sub_reactor.second->AddMainloopCallback(
+        std::bind(&SessionDemutiplexor::OnSessionDispatch, this));
+  }
+}
+
+void SessionDemutiplexor::StartUpReactors() {
+  main_reactor_->Start();
+  for (auto sub_reactor : sub_reactors_) {
+    sub_reactor.second->Start();
+  }
 }
 
 } /* namespace network */

@@ -30,20 +30,16 @@ class NetWrapper {
   void Launch();
 
  private:
-  void CreateMainReactor();
-  void CreateDemutiplexors();
-  void CreateSessionManager();
+  void CreateSessionDemutiplexor();
+  void CreateMessageDemutiplexor();
   void CreateServiceHandler();
   void CreateRelationShip();
-  void ReleaseComponents();
 
   static const int kThreadCount = 4;      // FIXME : For debug
   static const int kSubReactorCount = 3;  // FIXME : For debug
 
-  std::unique_ptr<MainReactor> main_reactor_;
   std::unique_ptr<MessageDemutiplexor> message_demutiplexor_;
   std::unique_ptr<SessionDemutiplexor> session_demutiplexor_;
-  std::unique_ptr<SessionManager> session_manager_;
   std::unique_ptr<plugin::ServiceHandler> service_handler_;
 };
 

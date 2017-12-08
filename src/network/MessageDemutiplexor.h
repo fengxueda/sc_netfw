@@ -20,9 +20,10 @@ class ServiceMessage;
 
 class MessageDemutiplexor {
  public:
-  MessageDemutiplexor(int thread_count);
+  MessageDemutiplexor();
   virtual ~MessageDemutiplexor();
 
+  void StartUp();
   void OnPushMessage(const std::shared_ptr<ServiceMessage>& message);
   void AddCallback(
       const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback);
@@ -32,7 +33,6 @@ class MessageDemutiplexor {
   void RegisterMessageDispatcher();
   void OnMessageDispatch();
 
-  int worker_count_;
   std::mutex mutex_;
   std::condition_variable cond_var_;
   std::vector<std::shared_ptr<ServiceWorker>> workers_;

@@ -24,8 +24,9 @@ class MainReactor {
   void Start();
   void Join();
 
-  void AddDataRecvCallback(
+  void AddPushSessionCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
+  void OnEventAction(int type, const std::shared_ptr<Session>& session);
 
  private:
   void OnAcceptedNotify(const std::shared_ptr<Session>& session);

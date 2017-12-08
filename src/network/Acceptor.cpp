@@ -86,6 +86,15 @@ void Acceptor::SetDataRecvCallback(
   recv_callback_ = callback;
 }
 
+void Acceptor::OnEventAction(int type,
+                             const std::shared_ptr<Session>& session) {
+  std::shared_ptr<Selector::ListenEvent> event = std::make_shared<
+      Selector::ListenEvent>();
+  event->set_sockfd(session->sockfd());
+  event->set_type(type);
+  Selector::AddEvent(event);
+}
+
 void Acceptor::OnAcceptedCallback(int sockfd, int event, void *ctx) {
   struct sockaddr_in client;
   socklen_t size = sizeof(client);

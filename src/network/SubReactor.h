@@ -29,20 +29,22 @@ class SubReactor {
 
   void Start();
   void Stop();
-  void OnSessionHandler(const std::shared_ptr<Session>& session);
   void AddMainloopCallback(const std::function<void()>& callback);
   void AddPushMessageCallback(
       const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback);
+  void SetEventActionCallback(
+      const std::function<void(int, const std::shared_ptr<Session>&)>& callback);
+  void OnDataRecv(const std::shared_ptr<Session> &session);
 
  private:
   void Mainloop();
-  void OnDataRecv(const std::shared_ptr<Session> &session);
 
   bool running_;
   std::thread* reactor_;
   std::mutex mutex_;
   std::string reactor_id_;
   std::condition_variable cond_var_;
+  SessionManager* session_manager_;
   std::function<void(int, const std::shared_ptr<Session>&)> ev_action_callback_;
   std::vector<std::function<void()>> mainloop_callbacks_;
   std::vector<std::function<void(const std::shared_ptr<ServiceMessage>&)>> msg_callbacks_;

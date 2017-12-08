@@ -21,22 +21,33 @@ class Session;
 class SubReactor;
 class SessionManager;
 class ServiceMessage;
+class MainReactor;
 
 class SessionDemutiplexor {
  public:
-  SessionDemutiplexor(SessionManager* session_manager, int thread_count);
+  SessionDemutiplexor();
   virtual ~SessionDemutiplexor();
 
+  void StartUp();
   void AddCallback(
       const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback);
   void OnPushSession(const std::shared_ptr<Session>& session);
   void OnSessionDispatch();
 
  private:
+  void CreateSessionManager();
+  void CreateMainReactor();
+  void CreateSubReactors();
+  void MakeRelationship();
+  void StartUpReactors();
+
+  std::unique_ptr<MainReactor> main_reactor_;
+  std::unique_ptr<SessionManager> session_manager_;
+  std::map<std::string, std::shared_ptr<SubReactor>> sub_reactors_;
+
   std::mutex mutex_;
   std::condition_variable cond_var_;
   std::queue<std::shared_ptr<Session>> sessions_;
-  std::map<std::string, std::shared_ptr<SubReactor>> sub_reactors_;
   std::vector<std::function<void(const std::shared_ptr<ServiceMessage>&)>> callbacks_;
 };
 
