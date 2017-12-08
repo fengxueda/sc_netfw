@@ -93,7 +93,6 @@ class Selector {
 
  private:
   void SelectorMainloop();
-  bool CheckStatusReport(const std::shared_ptr<Session>& session, short event);
 
   bool running_;
   std::thread* selector_;

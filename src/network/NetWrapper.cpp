@@ -11,7 +11,8 @@
 #include <event2/event_struct.h>
 #include "Error.h"
 #include "NetWrapper.h"
-#include "EventDemutiplexor.h"
+#include "SessionDemutiplexor.h"
+#include "MessageDemutiplexor.h"
 #include "SessionManager.h"
 #include "MainReactor.h"
 #include "SubReactor.h"
@@ -27,8 +28,8 @@
 
 namespace network {
 
-NetWrapper::NetWrapper()
-    : listen_sd_(-1) {
+NetWrapper::NetWrapper() {
+
 }
 
 NetWrapper::~NetWrapper() {
@@ -39,46 +40,27 @@ NetWrapper::~NetWrapper() {
 /* 创建顺序不能变 */
 void NetWrapper::Launch() {
   CreateSessionManager();
-  CreateReactors();
-  CreateDemutiplexor();
+  CreateMainReactor();
+  CreateDemutiplexors();
   CreateServiceHandler();
+  CreateRelationShip();
 
   main_reactor_->Start();
-  for (auto sub_ractor : sub_reactors_) {
-    sub_ractor->Start();
-  }
-
   main_reactor_->Join();
-  for (auto sub_reactor : sub_reactors_) {
-    sub_reactor->Join();
-  }
 }
 
-void NetWrapper::CreateReactors() {
+void NetWrapper::CreateMainReactor() {
   CHECK_NOTNULL(session_manager_.get());
   main_reactor_.reset(new MainReactor(session_manager_.get()));
   CHECK_NOTNULL(main_reactor_.get());
-  for (unsigned int index = 0; index < kSubReactorCount; index++) {
-    std::shared_ptr<SubReactor> sub_reactor = std::make_shared<SubReactor>(
-        session_manager_.get());
-    CHECK_NOTNULL(sub_reactor.get());
-    main_reactor_->SetNotifyCallback(
-        std::bind(&SubReactor::OnNotified, sub_reactor.get(),
-                  std::placeholders::_1, std::placeholders::_2));
-    sub_reactors_.push_back(sub_reactor);
-  }
 }
 
-void NetWrapper::CreateDemutiplexor() {
-  event_demutiplexor_.reset(new EventDemutiplexor(kThreadCount));
-  CHECK_NOTNULL(event_demutiplexor_.get());
-  for (auto sub_reactor : sub_reactors_) {
-    CHECK_NOTNULL(sub_reactor.get());
-    sub_reactor->SetNotifyCallback(
-        std::bind(&EventDemutiplexor::PushEventToDispatcher,
-                  event_demutiplexor_.get(), std::placeholders::_1,
-                  std::placeholders::_2));
-  }
+void NetWrapper::CreateDemutiplexors() {
+  session_demutiplexor_.reset(
+      new SessionDemutiplexor(session_manager_.get(), kThreadCount));
+  CHECK_NOTNULL(session_demutiplexor_.get());
+  message_demutiplexor_.reset(new MessageDemutiplexor(kThreadCount));
+  CHECK_NOTNULL(message_demutiplexor_.get());
   DLOG(INFO)<< "Create demutiplexor successful.";
 }
 
@@ -91,16 +73,26 @@ void NetWrapper::CreateSessionManager() {
 void NetWrapper::CreateServiceHandler() {
   service_handler_.reset(new plugin::ServiceHandler());
   CHECK_NOTNULL(service_handler_.get());
-  event_demutiplexor_->AddCallback(
+  DLOG(INFO)<< "Create service handler successful.";
+}
+
+void NetWrapper::CreateRelationShip() {
+  main_reactor_->AddDataRecvCallback(
+      std::bind(&SessionDemutiplexor::OnPushSession,
+                session_demutiplexor_.get(), std::placeholders::_1));
+  session_demutiplexor_->AddCallback(
+      std::bind(&MessageDemutiplexor::OnPushMessage,
+                message_demutiplexor_.get(), std::placeholders::_1));
+  message_demutiplexor_->AddCallback(
       std::bind(&plugin::ServiceHandler::OnHandler, service_handler_.get(),
-                std::placeholders::_1, std::placeholders::_2));
+                std::placeholders::_1));
 }
 
 void NetWrapper::ReleaseComponents() {
   session_manager_.reset();
-  event_demutiplexor_.reset();
+  session_demutiplexor_.reset();
+  message_demutiplexor_.reset();
   main_reactor_.reset();
-  sub_reactors_.clear();
 }
 
 }

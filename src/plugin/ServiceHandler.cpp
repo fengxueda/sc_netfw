@@ -21,18 +21,15 @@ ServiceHandler::~ServiceHandler() {
 }
 
 void ServiceHandler::AddPluginCallback(
-    const std::function<
-        void(const std::shared_ptr<network::Session> &,
-             const std::shared_ptr<network::ServiceMessage> &)>& callback) {
+    const std::function<void(const std::shared_ptr<network::ServiceMessage> &)>& callback) {
   callbacks_.push_back(callback);
 }
 
 void ServiceHandler::OnHandler(
-    const std::shared_ptr<network::Session>& session,
     const std::shared_ptr<network::ServiceMessage>& message) {
   DLOG(INFO)<<"Datagram length : " << message->datagram()->length();
   for (auto callback : callbacks_) {
-    callback(session, message);
+    callback(message);
   }
 }
 

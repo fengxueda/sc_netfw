@@ -8,53 +8,44 @@
 #ifndef SRC_NETWORK_SUBREACTOR_H_
 #define SRC_NETWORK_SUBREACTOR_H_
 
+#include <atomic>
 #include <memory>
-#include "Reactor.h"
+#include <mutex>
+#include <thread>
+#include <condition_variable>
 
 namespace network {
 
 class Session;
-class Selector;
 class SessionManager;
 class ServiceMessage;
 
-class SubReactor : public Reactor<ServiceMessage> {
+class SubReactor {
  public:
   SubReactor(SessionManager* session_manager);
   virtual ~SubReactor();
 
+  const std::string& reactor_id() const;
+
   void Start();
-  void Join();
-
-  void SetNotifyCallback(
-      const std::function<
-          void(const std::shared_ptr<Session> &,
-               const std::shared_ptr<ServiceMessage>&)>& callback);
-  void SetNotifiedCallback(
-      const std::function<
-          void(const std::shared_ptr<Session> &,
-               const std::shared_ptr<ServiceMessage>&)>& callback);
-
-  void OnNotified(const std::shared_ptr<Session>& session,
-                  const std::shared_ptr<ServiceMessage>& ctx);
+  void Stop();
+  void OnSessionHandler(const std::shared_ptr<Session>& session);
+  void AddMainloopCallback(const std::function<void()>& callback);
+  void AddPushMessageCallback(
+      const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback);
 
  private:
-  void OnNotify(const std::shared_ptr<Session>& session,
-                const std::shared_ptr<ServiceMessage>& ctx);
-  void OnDataRecv(std::shared_ptr<Session> &session, int event, void* ctx);
-  void OnAccept(int sockfd, int event, void *ctx);
+  void Mainloop();
+  void OnDataRecv(const std::shared_ptr<Session> &session);
 
-  void MainloopInit();
-  void MainloopUninit();
-
-  int local_sockfd_;
-  std::unique_ptr<Selector> selector_;
-  std::function<
-      void(const std::shared_ptr<Session>&,
-           const std::shared_ptr<ServiceMessage>&)> notify_callback_;
-  std::function<
-      void(const std::shared_ptr<Session>&,
-           const std::shared_ptr<ServiceMessage>&)> notified_callback_;
+  bool running_;
+  std::thread* reactor_;
+  std::mutex mutex_;
+  std::string reactor_id_;
+  std::condition_variable cond_var_;
+  std::function<void(int, const std::shared_ptr<Session>&)> ev_action_callback_;
+  std::vector<std::function<void()>> mainloop_callbacks_;
+  std::vector<std::function<void(const std::shared_ptr<ServiceMessage>&)>> msg_callbacks_;
 };
 
 } /* namespace network */

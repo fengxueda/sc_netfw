@@ -47,18 +47,22 @@ Acceptor::Acceptor(SessionManager* session_manager, unsigned short port,
   CHECK_STATUS(FATAL, evutil_make_socket_nonblocking(listener_));
   DLOG(INFO)<< "Bind port(" << port << ") successful. Listening...";
 
-  SetAcceptedCallback(
+  Selector::SetAcceptedCallback(
       std::bind(&Acceptor::OnAcceptedCallback, this, std::placeholders::_1,
+                std::placeholders::_2, std::placeholders::_3));
+  Selector::SetDataRecvCallback(
+      std::bind(&Acceptor::OnDataRecvCallback, this, std::placeholders::_1,
                 std::placeholders::_2, std::placeholders::_3));
   std::shared_ptr<Selector::ListenEvent> event = std::make_shared<
       Selector::ListenEvent>();
   event->set_sockfd(listener_);
   event->set_type(Selector::TYPE_ACCEPT);
-  AddEvent(event);
+  Selector::AddEvent(event);
 }
 
 Acceptor::~Acceptor() {
   if (listener_ > 0) {
+    Selector::DeleteEvent(listener_);
     CHECK_STATUS(WARNING, evutil_closesocket(listener_));
   }
   DLOG(INFO)<< __FUNCTION__;
@@ -74,7 +78,12 @@ void Acceptor::Join() {
 
 void Acceptor::SetAcceptedNotifyCallback(
     const std::function<void(const std::shared_ptr<Session> &)>& callback) {
-  callback_ = callback;
+  accept_callback_ = callback;
+}
+
+void Acceptor::SetDataRecvCallback(
+    const std::function<void(const std::shared_ptr<Session> &)>& callback) {
+  recv_callback_ = callback;
 }
 
 void Acceptor::OnAcceptedCallback(int sockfd, int event, void *ctx) {
@@ -94,11 +103,21 @@ void Acceptor::OnAcceptedCallback(int sockfd, int event, void *ctx) {
   session->set_update_time(GetLocalDate());
   session->set_session_id(
       session->remote_ip() + ":" + std::to_string(session->remote_port()));
-  DLOG(INFO)<< "Accept remote client : " << session->session_id();
-  AddSession(session);
-  if (IsExistSession(session->session_id())) {
-    callback_(session);
+  Selector::AddSession(session);
+  if (Selector::IsExistSession(session->session_id())) {
+    std::shared_ptr<Selector::ListenEvent> event = std::make_shared<
+        Selector::ListenEvent>();
+    event->set_sockfd(client_sd);
+    event->set_type(Selector::TYPE_READ);
+    Selector::AddEvent(event);
+    accept_callback_(session);
   }
+}
+
+void Acceptor::OnDataRecvCallback(const std::shared_ptr<Session>& session,
+                                  int event, void* ctx) {
+  CHECK_NOTNULL(session.get());
+  recv_callback_(session);
 }
 
 } /* namespace network */

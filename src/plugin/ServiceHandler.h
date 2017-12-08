@@ -25,23 +25,14 @@ class ServiceHandler {
   ServiceHandler();
   virtual ~ServiceHandler();
 
-  void SetHandlerCallback(
-      const std::function<
-          void(const std::shared_ptr<network::Session>&,
-               const std::shared_ptr<network::ServiceMessage>&)>& callback);
   void AddPluginCallback(
-      const std::function<
-          void(const std::shared_ptr<network::Session>&,
-               const std::shared_ptr<network::ServiceMessage>&)>& callback);
-  void OnHandler(const std::shared_ptr<network::Session>& session,
-                 const std::shared_ptr<network::ServiceMessage>& message);
+      const std::function<void(const std::shared_ptr<network::ServiceMessage>&)>& callback);
+  void OnHandler(const std::shared_ptr<network::ServiceMessage>& message);
 
  private:
   std::mutex mutex_;
   std::vector<
-      std::function<
-          void(const std::shared_ptr<network::Session>&,
-               const std::shared_ptr<network::ServiceMessage>&)>>callbacks_;
+      std::function<void(const std::shared_ptr<network::ServiceMessage>&)>> callbacks_;
 };
 
 }

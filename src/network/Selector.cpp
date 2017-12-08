@@ -97,23 +97,17 @@ void Selector::OnAcceptCallback(int sockfd, int event, void* ctx) {
 
 void Selector::OnSignalCallback(std::shared_ptr<Session>& session, int event,
                                 void* ctx) {
-  if (CheckStatusReport(session, event)) {
-    callback_signal_(session, event, ctx);
-  }
+  callback_signal_(session, event, ctx);
 }
 
 void Selector::OnDataRecvCallback(std::shared_ptr<Session>& session, int event,
                                   void* ctx) {
-  if (CheckStatusReport(session, event)) {
-    callback_recv_(session, event, ctx);
-  }
+  callback_recv_(session, event, ctx);
 }
 
 void Selector::OnDataSendCallback(std::shared_ptr<Session>& session, int event,
                                   void* ctx) {
-  if (CheckStatusReport(session, event)) {
-    callback_send_(session, event, ctx);
-  }
+  callback_send_(session, event, ctx);
 }
 
 bool Selector::IsExistSession(const std::string& session_id) {
@@ -141,7 +135,7 @@ void Selector::AddEvent(const std::shared_ptr<ListenEvent>& listen_event) {
   << listen_event->sockfd();
   switch (listen_event->type()) {
     case TYPE_READ: {
-      event = event_new(base_, listen_event->sockfd(), EV_READ | EV_PERSIST,
+      event = event_new(base_, listen_event->sockfd(), EV_READ | EV_ET,
                         OnDataRecv, this);
     }
       break;
@@ -166,7 +160,9 @@ void Selector::AddEvent(const std::shared_ptr<ListenEvent>& listen_event) {
   CHECK_NOTNULL(event);
   CHECK(0 == event_add(event, nullptr));
   std::lock_guard<std::mutex> lock(mutex_);
-  events_[listen_event->sockfd()] = event;
+  if (listen_event->type() == TYPE_ACCEPT) {
+    events_[listen_event->sockfd()] = event;
+  }
 }
 
 void Selector::DeleteEvent(int sockfd) {
@@ -193,35 +189,21 @@ void Selector::SelectorMainloop() {
   DLOG(INFO)<< "Selector ["<< this << "] exit main loop.";
 }
 
-bool Selector::CheckStatusReport(const std::shared_ptr<Session>& session,
-                                 short event) {
-//  switch (event & 0xF0) {
-//    case EV_CLOSED: {
-//      DeleteEvent(session->sockfd());
-//      ReleaseConnection(session);
-//      return false;
-//    }
-//      break;
-//    default:
-//      break;
-//  }
-  return true;
-}
-
 static void OnDataRecv(evutil_socket_t sockfd, short event, void *ctx) {
   Selector* selector = (Selector *) ctx;
   std::shared_ptr<Session> session = selector->GetSession(
       GetIpAdressBySocket(sockfd) + ":" + GetPortBySocket(sockfd));
   CHECK_NOTNULL(session.get());
   selector->OnDataRecvCallback(session, event, ctx);
-
 }
+
 static void OnDataSend(evutil_socket_t sockfd, short event, void *ctx) {
   Selector* selector = (Selector *) ctx;
   std::shared_ptr<Session> session = selector->GetSession(
       GetIpAdressBySocket(sockfd) + ":" + GetPortBySocket(sockfd));
   selector->OnDataSendCallback(session, event, ctx);
 }
+
 static void OnAccept(evutil_socket_t sockfd, short event, void *ctx) {
   Selector* selector = (Selector *) ctx;
   selector->OnAcceptCallback(sockfd, event, ctx);

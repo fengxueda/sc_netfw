@@ -18,8 +18,8 @@ class ServiceHandler;
 namespace network {
 
 class MainReactor;
-class SubReactor;
-class EventDemutiplexor;
+class SessionDemutiplexor;
+class MessageDemutiplexor;
 class SessionManager;
 
 class NetWrapper {
@@ -30,19 +30,19 @@ class NetWrapper {
   void Launch();
 
  private:
-  void CreateReactors();
-  void CreateDemutiplexor();
+  void CreateMainReactor();
+  void CreateDemutiplexors();
   void CreateSessionManager();
   void CreateServiceHandler();
+  void CreateRelationShip();
   void ReleaseComponents();
 
   static const int kThreadCount = 4;      // FIXME : For debug
   static const int kSubReactorCount = 3;  // FIXME : For debug
 
-  int listen_sd_;
   std::unique_ptr<MainReactor> main_reactor_;
-  std::vector<std::shared_ptr<SubReactor>> sub_reactors_;
-  std::unique_ptr<EventDemutiplexor> event_demutiplexor_;
+  std::unique_ptr<MessageDemutiplexor> message_demutiplexor_;
+  std::unique_ptr<SessionDemutiplexor> session_demutiplexor_;
   std::unique_ptr<SessionManager> session_manager_;
   std::unique_ptr<plugin::ServiceHandler> service_handler_;
 };

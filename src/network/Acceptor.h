@@ -27,12 +27,17 @@ class Acceptor : private Selector {
   void Join();
   void SetAcceptedNotifyCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
+  void SetDataRecvCallback(
+      const std::function<void(const std::shared_ptr<Session>&)>& callback);
 
  private:
   void OnAcceptedCallback(int sockfd, int event, void *ctx);
+  void OnDataRecvCallback(const std::shared_ptr<Session>& session, int event,
+                          void *ctx);
 
   int listener_;
-  std::function<void(const std::shared_ptr<Session>&)> callback_;
+  std::function<void(const std::shared_ptr<Session>&)> accept_callback_;
+  std::function<void(const std::shared_ptr<Session>&)> recv_callback_;
 };
 
 } /* namespace network */

@@ -26,6 +26,10 @@ ServiceWorker::~ServiceWorker() {
   DLOG(INFO) << __FUNCTION__;
 }
 
+void ServiceWorker::Start() {
+  cond_var_.notify_one();
+}
+
 void ServiceWorker::Stop() {
   running_ = false;
 }
@@ -33,7 +37,6 @@ void ServiceWorker::Stop() {
 void ServiceWorker::AddCallback(const std::function<void()>& callback) {
   std::lock_guard<std::mutex> lock(mutex_);
   callbacks_.push_back(callback);
-  cond_var_.notify_one();
 }
 
 void ServiceWorker::ServiceProcessor() {
