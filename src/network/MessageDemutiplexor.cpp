@@ -75,6 +75,7 @@ void MessageDemutiplexor::OnMessageDispatch() {
     for (auto callback : callbacks_) {
       callback(message);
     }
+    message.reset();
   }
 
 }

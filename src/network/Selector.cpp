@@ -47,6 +47,7 @@ Selector::~Selector() {
   running_ = false;
   {
     std::lock_guard<std::mutex> lock(mutex_);
+    LOG(INFO) << "events.size() = " << events_.size();
     for (auto event : events_) {
       event_del(event.second);
       event_free(event.second);
@@ -140,8 +141,9 @@ void Selector::AddEvent(const std::shared_ptr<ListenEvent>& listen_event) {
     return;
   }
   struct event* event = nullptr;
-//  DLOG(INFO)<< "Add event : type = " << listen_event->type() << ", sockfd = "
-//  << listen_event->sockfd();
+  // TODO : You have to lock before to use the event operation interface.(e.g. event_new, event_add)
+  // Because the libevent is not thread safety.
+  std::lock_guard<std::mutex> lock(mutex_);
   switch (listen_event->type()) {
     case TYPE_READ: {
       event = event_new(base_, listen_event->sockfd(), EV_READ | EV_ET,
@@ -168,8 +170,9 @@ void Selector::AddEvent(const std::shared_ptr<ListenEvent>& listen_event) {
   }
   CHECK_NOTNULL(event);
   CHECK(0 == event_add(event, nullptr));
-  std::lock_guard<std::mutex> lock(mutex_);
   if (events_.end() == events_.find(listen_event->sockfd())) {
+//    DLOG(INFO)<< "Add event : type = " << listen_event->type() << ", sockfd = "
+//    << listen_event->sockfd();
     events_[listen_event->sockfd()] = event;
   }
 }
@@ -178,7 +181,7 @@ void Selector::DeleteEvent(int sockfd) {
   std::lock_guard<std::mutex> lock(mutex_);
   auto iter = events_.find(sockfd);
   if (iter != events_.end()) {
-    event_del(events_[sockfd]);
+    CHECK(0 == event_del(events_[sockfd]));
     event_free(events_[sockfd]);
     events_.erase(iter);
   }
@@ -194,7 +197,10 @@ void Selector::SelectorMainloop() {
   std::unique_lock<std::mutex> lock(mutex);
   cond_var_.wait(lock, [this] {return running_;});
   DLOG(INFO)<< "Selector ["<< this << "] start up successful, come to main loop.";
-  event_base_dispatch(base_);
+  /* There is some bug of using the api : event_base_dispatch */
+//  event_base_dispatch(base_);
+  // Using event_base_loop now , flag was set to EVLOOP_NO_EXIT_ON_EMPTY
+  event_base_loop(base_, EVLOOP_NO_EXIT_ON_EMPTY);
   DLOG(INFO)<< "Selector ["<< this << "] exit main loop.";
 }
 

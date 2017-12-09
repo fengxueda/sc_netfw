@@ -45,7 +45,7 @@ Acceptor::Acceptor(SessionManager* session_manager, unsigned short port,
       bind(listener_, (struct sockaddr * ) &server, sizeof(struct sockaddr)));
   CHECK_STATUS(FATAL, listen(listener_, listen_count));
   CHECK_STATUS(FATAL, evutil_make_socket_nonblocking(listener_));
-  DLOG(INFO)<< "Bind port(" << port << ") successful. Listening...";
+  DLOG(INFO)<< "Bind port(" << port << ") successful, listen socket is (" << listener_ << "). Listening...";
 
   Selector::SetAcceptedCallback(
       std::bind(&Acceptor::OnAcceptedCallback, this, std::placeholders::_1,
