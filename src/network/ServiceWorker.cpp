@@ -15,15 +15,17 @@ ServiceWorker::ServiceWorker()
       worker_(nullptr) {
   worker_ = new std::thread(&ServiceWorker::ServiceProcessor, this);
   CHECK_NOTNULL(worker_);
-  DLOG(INFO) << "Service worker [" << worker_->get_id() << "] start up.";
+  DLOG(INFO)<< "Service worker [" << worker_->get_id() << "] start up.";
 }
 
 ServiceWorker::~ServiceWorker() {
   running_ = false;
-  worker_->join();
+  if (worker_->joinable()) {
+    worker_->join();
+  }
   delete worker_;
   worker_ = nullptr;
-  DLOG(INFO) << __FUNCTION__;
+  DLOG(INFO)<< __FUNCTION__;
 }
 
 void ServiceWorker::Start() {
@@ -41,7 +43,7 @@ void ServiceWorker::AddCallback(const std::function<void()>& callback) {
 
 void ServiceWorker::ServiceProcessor() {
   std::unique_lock<std::mutex> lock(mutex_);
-  cond_var_.wait(lock, [this]{return !callbacks_.empty();});
+  cond_var_.wait(lock, [this] {return !callbacks_.empty();});
   while (running_) {
     for (auto function_cb : callbacks_) {
       function_cb();
@@ -50,5 +52,4 @@ void ServiceWorker::ServiceProcessor() {
 }
 
 } /* namespace network */
-
 

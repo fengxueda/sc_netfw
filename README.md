@@ -8,7 +8,7 @@
 	Send message via session.
 	All the application handler should be registered in the ServiceHander.cpp .
 	
-	# Before use it, you should install libevent and mysql connector(optional).
+	# Before use it, you should install libevent , glog & gflags,  mysql connector(optional).
 	$ make
 	
 	Create a static library at the build/* .

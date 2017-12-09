@@ -11,6 +11,7 @@
 #include <mutex>
 #include <thread>
 #include <memory>
+#include <map>
 #include <unordered_map>
 #include <condition_variable>
 
@@ -101,7 +102,7 @@ class Selector {
 
   std::mutex mutex_;
   std::condition_variable cond_var_;
-  std::unordered_map<int, struct event*> events_;
+  std::map<int, struct event*> events_;
 
   std::function<void(int, int, void *)> callback_accept_;
   std::function<void(std::shared_ptr<Session>&, int, void *)> callback_recv_;

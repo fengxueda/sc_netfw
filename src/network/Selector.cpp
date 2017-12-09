@@ -55,7 +55,9 @@ Selector::~Selector() {
   }
   event_base_loopbreak(base_);
   event_base_free(base_);
-  selector_->join();
+  if (selector_->joinable()) {
+    selector_->join();
+  }
   delete selector_;
   selector_ = nullptr;
   DLOG(INFO)<< __FUNCTION__;

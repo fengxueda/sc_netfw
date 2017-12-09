@@ -44,7 +44,9 @@ SubReactor::SubReactor(SessionManager* session_manager)
 
 SubReactor::~SubReactor() {
   running_ = false;
-  reactor_->join();
+  if (reactor_->joinable()) {
+    reactor_->join();
+  }
   delete reactor_;
   reactor_ = nullptr;
   DLOG(INFO)<< __FUNCTION__;
@@ -100,8 +102,8 @@ void SubReactor::OnDataRecv(const std::shared_ptr<Session>& session) {
       }
       break;
       case -1: {
-        DLOG(WARNING) << "The connection occurs error, message : "
-        << strerror(GetErrorCodeBySocket(session->sockfd()));
+        DLOG(WARNING) << "The connection ["<< session->session_id()
+        <<"] occurs error, message : " << strerror(GetErrorCodeBySocket(session->sockfd()));
         session_manager_->DeleteSession(session->session_id());
         return;
       }
