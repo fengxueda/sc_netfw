@@ -59,7 +59,7 @@ void NetWrapper::CreateServiceHandler() {
 }
 
 void NetWrapper::CreateRelationShip() {
-  session_demutiplexor_->AddCallback(
+  session_demutiplexor_->AddPushMessageCallback(
       std::bind(&MessageDemutiplexor::OnPushMessage,
                 message_demutiplexor_.get(), std::placeholders::_1));
   message_demutiplexor_->AddCallback(

@@ -27,7 +27,7 @@ class Acceptor : private Selector {
   void Join();
   void SetAcceptedNotifyCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
-  void SetDataRecvCallback(
+  void SetDataRecvNotifyCallback(
       const std::function<void(const std::shared_ptr<Session>&)>& callback);
   void OnEventAction(int type, const std::shared_ptr<Session>& session);
 

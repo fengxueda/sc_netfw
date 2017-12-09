@@ -147,7 +147,7 @@ void Selector::AddEvent(const std::shared_ptr<ListenEvent>& listen_event) {
     }
       break;
     case TYPE_WRITE: {
-      event = event_new(base_, listen_event->sockfd(), EV_WRITE | EV_PERSIST,
+      event = event_new(base_, listen_event->sockfd(), EV_WRITE | EV_ET,
                         OnDataSend, this);
     }
       break;

@@ -71,12 +71,12 @@ void SubReactor::AddMainloopCallback(const std::function<void()>& callback) {
 void SubReactor::AddPushMessageCallback(
     const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback) {
   std::lock_guard<std::mutex> lock(mutex_);
-  msg_callbacks_.push_back(callback);
+  push_msg_callbacks_.push_back(callback);
 }
 
-void SubReactor::SetEventActionCallback(
+void SubReactor::AddEventActionCallback(
     const std::function<void(int, const std::shared_ptr<Session> &)>& callback) {
-  ev_action_callback_ = callback;
+  ev_action_callbacks_.push_back(callback);
 }
 
 #define MAXSIZE 4096
@@ -114,8 +114,10 @@ void SubReactor::OnDataRecv(const std::shared_ptr<Session>& session) {
   } while (1);
   message->set_session(session);
   message->set_datagram(datagram);
-  ev_action_callback_(Selector::TYPE_READ, session);
-  for (auto callback : msg_callbacks_) {
+  for (auto callback : ev_action_callbacks_) {
+    callback(Selector::TYPE_READ, session);
+  }
+  for (auto callback : push_msg_callbacks_) {
     callback(message);
   }
 }

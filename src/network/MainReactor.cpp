@@ -18,7 +18,7 @@ MainReactor::MainReactor(SessionManager* session_manager) {
   acceptor_.reset(new Acceptor(session_manager, kServerPort, kMaxListenCount));
   acceptor_->SetAcceptedNotifyCallback(
       std::bind(&MainReactor::OnAcceptedNotify, this, std::placeholders::_1));
-  acceptor_->SetDataRecvCallback(
+  acceptor_->SetDataRecvNotifyCallback(
       std::bind(&MainReactor::OnDataRecvNotify, this, std::placeholders::_1));
 }
 

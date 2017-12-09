@@ -81,7 +81,7 @@ void Acceptor::SetAcceptedNotifyCallback(
   accept_callback_ = callback;
 }
 
-void Acceptor::SetDataRecvCallback(
+void Acceptor::SetDataRecvNotifyCallback(
     const std::function<void(const std::shared_ptr<Session> &)>& callback) {
   recv_callback_ = callback;
 }
@@ -95,6 +95,7 @@ void Acceptor::OnEventAction(int type,
   Selector::AddEvent(event);
 }
 
+/* new connection */
 void Acceptor::OnAcceptedCallback(int sockfd, int event, void *ctx) {
   struct sockaddr_in client;
   socklen_t size = sizeof(client);
@@ -123,6 +124,7 @@ void Acceptor::OnAcceptedCallback(int sockfd, int event, void *ctx) {
   }
 }
 
+/* new readable event */
 void Acceptor::OnDataRecvCallback(const std::shared_ptr<Session>& session,
                                   int event, void* ctx) {
   CHECK_NOTNULL(session.get());

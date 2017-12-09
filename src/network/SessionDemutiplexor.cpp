@@ -40,9 +40,9 @@ void SessionDemutiplexor::StartUp() {
   main_reactor_->Join();
 }
 
-void SessionDemutiplexor::AddCallback(
+void SessionDemutiplexor::AddPushMessageCallback(
     const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback) {
-  callbacks_.push_back(callback);
+  push_msg_callbacks_.push_back(callback);
 }
 
 void SessionDemutiplexor::OnPushSession(
@@ -50,6 +50,13 @@ void SessionDemutiplexor::OnPushSession(
   std::lock_guard<std::mutex> lock(mutex_);
   sessions_.push(session);
   cond_var_.notify_one();
+}
+
+void SessionDemutiplexor::OnPushMessage(
+    const std::shared_ptr<ServiceMessage>& message) {
+  for (auto callback : push_msg_callbacks_) {
+    callback(message);
+  }
 }
 
 void SessionDemutiplexor::OnSessionDispatch() {
@@ -94,11 +101,14 @@ void SessionDemutiplexor::MakeRelationship() {
       std::bind(&SessionDemutiplexor::OnPushSession, this,
                 std::placeholders::_1));
   for (auto sub_reactor : sub_reactors_) {
-    sub_reactor.second->SetEventActionCallback(
+    sub_reactor.second->AddEventActionCallback(
         std::bind(&MainReactor::OnEventAction, main_reactor_.get(),
                   std::placeholders::_1, std::placeholders::_2));
     sub_reactor.second->AddMainloopCallback(
         std::bind(&SessionDemutiplexor::OnSessionDispatch, this));
+    sub_reactor.second->AddPushMessageCallback(
+        std::bind(&SessionDemutiplexor::OnPushMessage, this,
+                  std::placeholders::_1));
   }
 }
 

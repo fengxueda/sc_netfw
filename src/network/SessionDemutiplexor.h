@@ -29,9 +29,10 @@ class SessionDemutiplexor {
   virtual ~SessionDemutiplexor();
 
   void StartUp();
-  void AddCallback(
+  void AddPushMessageCallback(
       const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback);
   void OnPushSession(const std::shared_ptr<Session>& session);
+  void OnPushMessage(const std::shared_ptr<ServiceMessage>& message);
   void OnSessionDispatch();
 
  private:
@@ -48,7 +49,7 @@ class SessionDemutiplexor {
   std::mutex mutex_;
   std::condition_variable cond_var_;
   std::queue<std::shared_ptr<Session>> sessions_;
-  std::vector<std::function<void(const std::shared_ptr<ServiceMessage>&)>> callbacks_;
+  std::vector<std::function<void(const std::shared_ptr<ServiceMessage>&)>> push_msg_callbacks_;
 };
 
 }
