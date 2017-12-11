@@ -69,18 +69,18 @@ class Selector {
   void SetAcceptedCallback(
       const std::function<void(int, int, void *)>& callback);
   void SetDataRecvCallback(
-      const std::function<void(std::shared_ptr<Session>&, int, void *)>& callback);
+      const std::function<void(const std::shared_ptr<Session>&, int, void *)>& callback);
   void SetDataSendCallback(
-      const std::function<void(std::shared_ptr<Session>&, int, void *)>& callback);
+      const std::function<void(const std::shared_ptr<Session>&, int, void *)>& callback);
   void SetSignalCallback(
-      const std::function<void(std::shared_ptr<Session>&, int, void *)>& callback);
+      const std::function<void(const std::shared_ptr<Session>&, int, void *)>& callback);
 
   void OnAcceptCallback(int sockfd, int event, void *ctx);
-  void OnSignalCallback(std::shared_ptr<Session>& session, int event,
+  void OnSignalCallback(const std::shared_ptr<Session>& session, int event,
                         void *ctx);
-  void OnDataRecvCallback(std::shared_ptr<Session>& session, int event,
+  void OnDataRecvCallback(const std::shared_ptr<Session>& session, int event,
                           void *ctx);
-  void OnDataSendCallback(std::shared_ptr<Session>& session, int event,
+  void OnDataSendCallback(const std::shared_ptr<Session>& session, int event,
                           void *ctx);
 
   bool IsExistSession(const std::string& session_id);
@@ -105,9 +105,9 @@ class Selector {
   std::map<int, struct event*> events_;
 
   std::function<void(int, int, void *)> callback_accept_;
-  std::function<void(std::shared_ptr<Session>&, int, void *)> callback_recv_;
-  std::function<void(std::shared_ptr<Session>&, int, void *)> callback_send_;
-  std::function<void(std::shared_ptr<Session>&, int, void *)> callback_signal_;
+  std::function<void(const std::shared_ptr<Session>&, int, void *)> callback_recv_;
+  std::function<void(const std::shared_ptr<Session>&, int, void *)> callback_send_;
+  std::function<void(const std::shared_ptr<Session>&, int, void *)> callback_signal_;
 };
 
 } /* namespace network */

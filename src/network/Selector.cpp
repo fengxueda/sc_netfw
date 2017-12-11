@@ -80,17 +80,17 @@ void Selector::SetAcceptedCallback(
 }
 
 void Selector::SetDataRecvCallback(
-    const std::function<void(std::shared_ptr<Session> &, int, void*)>& callback) {
+    const std::function<void(const std::shared_ptr<Session> &, int, void*)>& callback) {
   callback_recv_ = callback;
 }
 
 void Selector::SetDataSendCallback(
-    const std::function<void(std::shared_ptr<Session> &, int, void*)>& callback) {
+    const std::function<void(const std::shared_ptr<Session> &, int, void*)>& callback) {
   callback_send_ = callback;
 }
 
 void Selector::SetSignalCallback(
-    const std::function<void(std::shared_ptr<Session> &, int, void*)>& callback) {
+    const std::function<void(const std::shared_ptr<Session> &, int, void*)>& callback) {
   callback_signal_ = callback;
 }
 
@@ -98,12 +98,12 @@ void Selector::OnAcceptCallback(int sockfd, int event, void* ctx) {
   callback_accept_(sockfd, event, ctx);
 }
 
-void Selector::OnSignalCallback(std::shared_ptr<Session>& session, int event,
+void Selector::OnSignalCallback(const std::shared_ptr<Session>& session, int event,
                                 void* ctx) {
   callback_signal_(session, event, ctx);
 }
 
-void Selector::OnDataRecvCallback(std::shared_ptr<Session>& session, int event,
+void Selector::OnDataRecvCallback(const std::shared_ptr<Session>& session, int event,
                                   void* ctx) {
   switch (event & 0xF0) {
     case EV_ET:
@@ -115,7 +115,7 @@ void Selector::OnDataRecvCallback(std::shared_ptr<Session>& session, int event,
   callback_recv_(session, event, ctx);
 }
 
-void Selector::OnDataSendCallback(std::shared_ptr<Session>& session, int event,
+void Selector::OnDataSendCallback(const std::shared_ptr<Session>& session, int event,
                                   void* ctx) {
   callback_send_(session, event, ctx);
 }
