@@ -25,7 +25,7 @@ SessionDemutiplexor::SessionDemutiplexor() {
 }
 
 SessionDemutiplexor::~SessionDemutiplexor() {
-  for (auto sub_reactor : sub_reactors_) {
+  for (const auto& sub_reactor : sub_reactors_) {
     sub_reactor.second->Stop();
   }
   for (unsigned int index = 0; index < sub_reactors_.size(); index++) {
@@ -54,7 +54,7 @@ void SessionDemutiplexor::OnPushSession(
 
 void SessionDemutiplexor::OnPushMessage(
     const std::shared_ptr<ServiceMessage>& message) {
-  for (auto callback : push_msg_callbacks_) {
+  for (const auto& callback : push_msg_callbacks_) {
     callback(message);
   }
 }
@@ -100,7 +100,7 @@ void SessionDemutiplexor::MakeRelationship() {
   main_reactor_->AddPushSessionCallback(
       std::bind(&SessionDemutiplexor::OnPushSession, this,
                 std::placeholders::_1));
-  for (auto sub_reactor : sub_reactors_) {
+  for (const auto& sub_reactor : sub_reactors_) {
     sub_reactor.second->AddEventActionCallback(
         std::bind(&MainReactor::OnEventAction, main_reactor_.get(),
                   std::placeholders::_1, std::placeholders::_2));
@@ -114,7 +114,7 @@ void SessionDemutiplexor::MakeRelationship() {
 
 void SessionDemutiplexor::StartUpReactors() {
   main_reactor_->Start();
-  for (auto sub_reactor : sub_reactors_) {
+  for (const auto& sub_reactor : sub_reactors_) {
     sub_reactor.second->Start();
   }
 }

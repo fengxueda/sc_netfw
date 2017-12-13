@@ -49,7 +49,7 @@ void MainReactor::OnAcceptedNotify(const std::shared_ptr<Session>& session) {
 }
 
 void MainReactor::OnDataRecvNotify(const std::shared_ptr<Session>& session) {
-  for (auto callback : recv_callbacks_) {
+  for (const auto& callback : recv_callbacks_) {
     callback(session);
   }
 }

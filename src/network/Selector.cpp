@@ -48,7 +48,7 @@ Selector::~Selector() {
   {
     std::lock_guard<std::mutex> lock(mutex_);
     LOG(INFO) << "events.size() = " << events_.size();
-    for (auto event : events_) {
+    for (const auto& event : events_) {
       event_del(event.second);
       event_free(event.second);
     }

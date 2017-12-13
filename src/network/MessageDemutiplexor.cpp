@@ -19,7 +19,7 @@ MessageDemutiplexor::MessageDemutiplexor() {
 }
 
 MessageDemutiplexor::~MessageDemutiplexor() {
-  for (auto worker : workers_) {
+  for (const auto& worker : workers_) {
     worker->Stop();
   }
   for (unsigned int index = 0; index < workers_.size(); index++) {
@@ -55,7 +55,7 @@ void MessageDemutiplexor::CreateServiceWorkers() {
 }
 
 void MessageDemutiplexor::RegisterMessageDispatcher() {
-  for (auto worker : workers_) {
+  for (const auto& worker : workers_) {
     worker->AddCallback(
         std::bind(&MessageDemutiplexor::OnMessageDispatch, this));
     worker->Start();
@@ -72,7 +72,7 @@ void MessageDemutiplexor::OnMessageDispatch() {
   }
 
   if (message != nullptr) {
-    for (auto callback : callbacks_) {
+    for (const auto& callback : callbacks_) {
       callback(message);
     }
     message.reset();

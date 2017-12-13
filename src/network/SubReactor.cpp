@@ -116,10 +116,10 @@ void SubReactor::OnDataRecv(const std::shared_ptr<Session>& session) {
   } while (1);
   message->set_session(session);
   message->set_datagram(datagram);
-  for (auto callback : ev_action_callbacks_) {
+  for (const auto& callback : ev_action_callbacks_) {
     callback(Selector::TYPE_READ, session);
   }
-  for (auto callback : push_msg_callbacks_) {
+  for (const auto& callback : push_msg_callbacks_) {
     callback(message);
   }
 }
@@ -130,7 +130,7 @@ void SubReactor::Mainloop() {
   cond_var_.wait(lock, [this] {return running_;});
   DLOG(INFO)<< "SubReactor [" << reactor_id_ << "] start up.";
   while (running_) {
-    for (auto callback : mainloop_callbacks_) {
+    for (const auto& callback : mainloop_callbacks_) {
       callback();
     }
   }

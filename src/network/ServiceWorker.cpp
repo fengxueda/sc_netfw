@@ -45,7 +45,7 @@ void ServiceWorker::ServiceProcessor() {
   std::unique_lock<std::mutex> lock(mutex_);
   cond_var_.wait(lock, [this] {return !callbacks_.empty();});
   while (running_) {
-    for (auto function_cb : callbacks_) {
+    for (const auto& function_cb : callbacks_) {
       function_cb();
     }
   }
