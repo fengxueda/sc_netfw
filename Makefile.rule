@@ -1,13 +1,20 @@
 CXX := g++
-CXXFLAGS := -std=c++11 -Wall -g -O2 
+CXXFLAGS := -std=c++11 -Wall -g -O2
 INCLUDES := -I${ROOT}/include -I${ROOT}/src
+TEMP := Makefile.temp
 
-all : ${OBJ}
+all :
 	@echo "\033[1m\033[36m CXXFLAG = ${CXXFLAGS} \033[0m"
-${OBJ} :%.o : %.cpp $(shell find ${ROOT} -name '*.h')
-	@echo "\033[1m\033[36m Compiling \033[35m$< \033[0m"
-	@${CXX} -c ${CXXFLAGS} $< -o $@ ${INCLUDES}
-	@cp $@ ${ROOT}/build
-
+	@for source in ${SRC}; \
+	do { \
+		echo "\033[1m\033[36m Compiling \033[35m$$source \033[0m"; \
+		${CXX} -MM $$source ${INCLUDES} ${CXXFLAGS} > ${TEMP}; \
+		echo "	" @${CXX} -c ${CXXFLAGS} '$$<' -o '$$@' ${INCLUDES} >> ${TEMP}; \
+		${MAKE} -f ${TEMP} || exit "$$?"; \
+		rm -rf ${TEMP}; \
+	}; \
+	done
+	@cp ${OBJ} ${ROOT}/build
+	
 .PHONY clean : 
-	@rm -rf ${OBJ} ${TARGET}
+	@rm -rf ${OBJ} ${TARGET} ${TEMP}
