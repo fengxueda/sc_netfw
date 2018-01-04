@@ -7,9 +7,9 @@ all :
 	@echo "\033[1m\033[36m CXXFLAG = ${CXXFLAGS} \033[0m"
 	@for source in ${SRC}; \
 	do { \
-		echo "\033[1m\033[36m Compiling \033[35m$$source \033[0m"; \
 		${CXX} -MM $$source ${INCLUDES} ${CXXFLAGS} > ${TEMP}; \
-		echo "	" @${CXX} -c ${CXXFLAGS} '$$<' -o '$$@' ${INCLUDES} >> ${TEMP}; \
+		echo '	@echo "\\033[1m\\033[36m Compiling \\033[35m$$< \\033[0m" ' >> ${TEMP}; \
+		echo '	@${CXX} -c ${CXXFLAGS} $$< -o $$@ ${INCLUDES}' >> ${TEMP}; \
 		${MAKE} -f ${TEMP} || exit "$$?"; \
 		rm -rf ${TEMP}; \
 	}; \

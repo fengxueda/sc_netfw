@@ -1,4 +1,6 @@
 .settings
 .cproject
 .project
-./test
+test
+build
+*.o
