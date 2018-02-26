@@ -71,7 +71,7 @@ void SubReactor::AddMainloopCallback(const std::function<void()>& callback) {
 }
 
 void SubReactor::AddPushMessageCallback(
-    const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback) {
+    const std::function<void(const std::shared_ptr<ServiceContext>&)>& callback) {
   std::lock_guard<std::mutex> lock(mutex_);
   push_msg_callbacks_.push_back(callback);
 }
@@ -85,7 +85,7 @@ void SubReactor::AddEventActionCallback(
 void SubReactor::OnDataRecv(const std::shared_ptr<Session>& session) {
 // TODO : Read data from remote
   CHECK_NOTNULL(session.get());
-  std::shared_ptr<ServiceMessage> message = std::make_shared<ServiceMessage>();
+  std::shared_ptr<ServiceContext> context = std::make_shared<ServiceContext>();
   std::shared_ptr<DataPacket> datagram = std::make_shared<DataPacket>();
   unsigned char buffer[MAXSIZE];
   do {
@@ -114,13 +114,13 @@ void SubReactor::OnDataRecv(const std::shared_ptr<Session>& session) {
     /* Push data to datagram */
     datagram->PushBack(buffer, nbyte);
   } while (1);
-  message->set_session(session);
-  message->set_datagram(datagram);
+  context->set_session(session);
+  context->set_datagram(datagram);
   for (const auto& callback : ev_action_callbacks_) {
     callback(Selector::TYPE_READ, session);
   }
   for (const auto& callback : push_msg_callbacks_) {
-    callback(message);
+    callback(context);
   }
 }
 #undef MAXSIZE

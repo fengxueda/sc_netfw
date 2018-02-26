@@ -41,7 +41,7 @@ void SessionDemutiplexor::StartUp() {
 }
 
 void SessionDemutiplexor::AddPushMessageCallback(
-    const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback) {
+    const std::function<void(const std::shared_ptr<ServiceContext>&)>& callback) {
   push_msg_callbacks_.push_back(callback);
 }
 
@@ -53,9 +53,9 @@ void SessionDemutiplexor::OnPushSession(
 }
 
 void SessionDemutiplexor::OnPushMessage(
-    const std::shared_ptr<ServiceMessage>& message) {
+    const std::shared_ptr<ServiceContext>& context) {
   for (const auto& callback : push_msg_callbacks_) {
-    callback(message);
+    callback(context);
   }
 }
 

@@ -22,6 +22,7 @@ class Session {
   virtual ~Session() {
     if (sockfd_ > 0) {
       close(sockfd_);
+      sockfd_ = -1;
     }
   }
 

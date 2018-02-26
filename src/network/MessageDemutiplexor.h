@@ -16,7 +16,7 @@
 namespace network {
 
 class ServiceWorker;
-class ServiceMessage;
+class ServiceContext;
 
 class MessageDemutiplexor {
  public:
@@ -24,9 +24,9 @@ class MessageDemutiplexor {
   virtual ~MessageDemutiplexor();
 
   void StartUp();
-  void OnPushMessage(const std::shared_ptr<ServiceMessage>& message);
+  void OnPushMessage(const std::shared_ptr<ServiceContext>& context);
   void AddCallback(
-      const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback);
+      const std::function<void(const std::shared_ptr<ServiceContext>&)>& callback);
 
  private:
   void CreateServiceWorkers();
@@ -36,8 +36,8 @@ class MessageDemutiplexor {
   std::mutex mutex_;
   std::condition_variable cond_var_;
   std::vector<std::shared_ptr<ServiceWorker>> workers_;
-  std::queue<std::shared_ptr<ServiceMessage>> messages_;
-  std::vector<std::function<void(const std::shared_ptr<ServiceMessage>&)>> callbacks_;
+  std::queue<std::shared_ptr<ServiceContext>> queue_;
+  std::vector<std::function<void(const std::shared_ptr<ServiceContext>&)>> callbacks_;
 };
 
 } /* namespace network */
