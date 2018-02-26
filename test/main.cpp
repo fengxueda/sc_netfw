@@ -5,12 +5,12 @@
  *      Author: xueda
  */
 
-#include <unistd.h>
+#include <thread>
 #include "src/network/NetWrapper.h"
 
 int main() {
   network::NetWrapper netwarpper;
   netwarpper.Launch();
-  sleep(3);
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   return 0;
 }

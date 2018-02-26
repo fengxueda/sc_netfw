@@ -72,6 +72,9 @@ void MessageDemutiplexor::OnMessageDispatch() {
   }
 
   if (message != nullptr) {
+    /* CALLBACK : plugin::ServiceHandler::OnHandler
+     * MessageHandler, threadpool get this datagram for processing.
+     */
     for (const auto& callback : callbacks_) {
       callback(message);
     }
