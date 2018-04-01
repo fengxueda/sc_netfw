@@ -38,7 +38,7 @@ class DataPacket {
     }
   }
 
-  const unsigned char *data() const {
+  unsigned char *data() const {
     return data_;
   }
   const int capacity() const {

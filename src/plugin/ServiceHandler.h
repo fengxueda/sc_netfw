@@ -15,7 +15,7 @@
 
 namespace network {
 class Session;
-class ServiceMessage;
+class ServiceContext;
 }
 
 namespace plugin {
@@ -26,13 +26,13 @@ class ServiceHandler {
   virtual ~ServiceHandler();
 
   void AddPluginCallback(
-      const std::function<void(const std::shared_ptr<network::ServiceMessage>&)>& callback);
-  void OnHandler(const std::shared_ptr<network::ServiceMessage>& message);
+      const std::function<void(const std::shared_ptr<network::ServiceContext>&)>& callback);
+  void OnHandler(const std::shared_ptr<network::ServiceContext>& ctx);
 
  private:
   std::mutex mutex_;
   std::vector<
-      std::function<void(const std::shared_ptr<network::ServiceMessage>&)>> callbacks_;
+      std::function<void(const std::shared_ptr<network::ServiceContext>&)>> callbacks_;
 };
 
 }

@@ -67,7 +67,7 @@ std::shared_ptr<Session> SessionManager::GetSession(
 void SessionManager::MonitorThread() {
   while (running_) {
     // FIXME : No implement now
-    usleep(500 * 1000);
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
   }
 }
 

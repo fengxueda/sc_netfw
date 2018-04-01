@@ -23,7 +23,7 @@ MessageDemutiplexor::~MessageDemutiplexor() {
     worker->Stop();
   }
   for (unsigned int index = 0; index < workers_.size(); index++) {
-    messages_.push(nullptr);
+    queue_.push(nullptr);
     cond_var_.notify_all();
   }
   workers_.clear();
@@ -35,14 +35,14 @@ void MessageDemutiplexor::StartUp() {
 }
 
 void MessageDemutiplexor::OnPushMessage(
-    const std::shared_ptr<ServiceMessage>& message) {
+    const std::shared_ptr<ServiceContext>& context) {
   std::lock_guard<std::mutex> lock(mutex_);
-  messages_.push(message);
+  queue_.push(context);
   cond_var_.notify_one();
 }
 
 void MessageDemutiplexor::AddCallback(
-    const std::function<void(const std::shared_ptr<ServiceMessage> &)>& callback) {
+    const std::function<void(const std::shared_ptr<ServiceContext> &)>& callback) {
   callbacks_.push_back(callback);
 }
 
@@ -63,19 +63,22 @@ void MessageDemutiplexor::RegisterMessageDispatcher() {
 }
 
 void MessageDemutiplexor::OnMessageDispatch() {
-  std::shared_ptr<ServiceMessage> message;
+  std::shared_ptr<ServiceContext> context;
   {
     std::unique_lock<std::mutex> lock(mutex_);
-    cond_var_.wait(lock, [this] {return !messages_.empty();});
-    message = messages_.front();
-    messages_.pop();
+    cond_var_.wait(lock, [this] {return !queue_.empty();});
+    context = queue_.front();
+    queue_.pop();
   }
 
-  if (message != nullptr) {
+  if (context != nullptr) {
+    /* CALLBACK : plugin::ServiceHandler::OnHandler
+     * MessageHandler, threadpool get this datagram for processing.
+     */
     for (const auto& callback : callbacks_) {
-      callback(message);
+      callback(context);
     }
-    message.reset();
+    context.reset();
   }
 
 }

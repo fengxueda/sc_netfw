@@ -20,7 +20,7 @@ namespace network {
 class Session;
 class SubReactor;
 class SessionManager;
-class ServiceMessage;
+class ServiceContext;
 class MainReactor;
 
 class SessionDemutiplexor {
@@ -30,9 +30,9 @@ class SessionDemutiplexor {
 
   void StartUp();
   void AddPushMessageCallback(
-      const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback);
+      const std::function<void(const std::shared_ptr<ServiceContext>&)>& callback);
   void OnPushSession(const std::shared_ptr<Session>& session);
-  void OnPushMessage(const std::shared_ptr<ServiceMessage>& message);
+  void OnPushMessage(const std::shared_ptr<ServiceContext>& context);
   void OnSessionDispatch();
 
  private:
@@ -49,7 +49,7 @@ class SessionDemutiplexor {
   std::mutex mutex_;
   std::condition_variable cond_var_;
   std::queue<std::shared_ptr<Session>> sessions_;
-  std::vector<std::function<void(const std::shared_ptr<ServiceMessage>&)>> push_msg_callbacks_;
+  std::vector<std::function<void(const std::shared_ptr<ServiceContext>&)>> push_msg_callbacks_;
 };
 
 }

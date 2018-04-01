@@ -18,7 +18,7 @@ namespace network {
 
 class Session;
 class SessionManager;
-class ServiceMessage;
+class ServiceContext;
 
 class SubReactor {
  public:
@@ -31,7 +31,7 @@ class SubReactor {
   void Stop();
   void AddMainloopCallback(const std::function<void()>& callback);
   void AddPushMessageCallback(
-      const std::function<void(const std::shared_ptr<ServiceMessage>&)>& callback);
+      const std::function<void(const std::shared_ptr<ServiceContext>&)>& callback);
   void AddEventActionCallback(
       const std::function<void(int, const std::shared_ptr<Session>&)>& callback);
   void OnDataRecv(const std::shared_ptr<Session> &session);
@@ -47,7 +47,7 @@ class SubReactor {
   SessionManager* session_manager_;
   std::vector<std::function<void(int, const std::shared_ptr<Session>&)>> ev_action_callbacks_;
   std::vector<std::function<void()>> mainloop_callbacks_;
-  std::vector<std::function<void(const std::shared_ptr<ServiceMessage>&)>> push_msg_callbacks_;
+  std::vector<std::function<void(const std::shared_ptr<ServiceContext>&)>> push_msg_callbacks_;
 };
 
 } /* namespace network */

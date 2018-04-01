@@ -90,7 +90,6 @@ class Selector {
 
   void AddEvent(const std::shared_ptr<ListenEvent>& listen_event);
   void DeleteEvent(int sockfd);
-  void ReleaseConnection(const std::shared_ptr<Session>& session);
 
  private:
   void SelectorMainloop();

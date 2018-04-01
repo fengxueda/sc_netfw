@@ -187,11 +187,6 @@ void Selector::DeleteEvent(int sockfd) {
   }
 }
 
-void Selector::ReleaseConnection(const std::shared_ptr<Session>& session) {
-  evutil_closesocket(session->sockfd());
-  DeleteSession(session->session_id());
-}
-
 void Selector::SelectorMainloop() {
   std::mutex mutex;
   std::unique_lock<std::mutex> lock(mutex);

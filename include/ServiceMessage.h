@@ -1,12 +1,12 @@
 /*
- * ServiceMessage.h
+ * ServiceContext.h
  *
  *  Created on: 2017年12月7日
  *      Author: xueda
  */
 
-#ifndef INCLUDE_SERVICEMESSAGE_H_
-#define INCLUDE_SERVICEMESSAGE_H_
+#ifndef INCLUDE_SERVICECONTEXT_H_
+#define INCLUDE_SERVICECONTEXT_H_
 
 #include <mutex>
 #include <memory>
@@ -16,12 +16,12 @@ namespace network {
 class Session;
 class DataPacket;
 
-class ServiceMessage {
+class ServiceContext {
  public:
-  ServiceMessage() {
+  ServiceContext() {
 
   }
-  virtual ~ServiceMessage() {
+  virtual ~ServiceContext() {
 
   }
 
@@ -50,4 +50,4 @@ class ServiceMessage {
 
 }
 
-#endif /* INCLUDE_SERVICEMESSAGE_H_ */
+#endif /* INCLUDE_SERVICECONTEXT_H_ */
