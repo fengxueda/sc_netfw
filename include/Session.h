@@ -9,6 +9,8 @@
 #define SRC_NETWORK_SESSION_H_
 
 #include <mutex>
+#include <iostream>
+#include <unistd.h>
 
 namespace network {
 
@@ -19,7 +21,10 @@ class Session {
         sockfd_(-1) {
   }
   virtual ~Session() {
-
+    if(sockfd_ > 0) {
+      close(sockfd_);
+      sockfd_ = -1;
+    }
   }
 
   virtual void SendMessage(unsigned char* data, int size) = 0;

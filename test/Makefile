@@ -4,7 +4,7 @@ BUILD = ${ROOT}/build
 LIBS = -lnet-wrapper -lmysqlcppconn -levent -pthread -lglog -lgflags -lcrypto -lssl
 TARGET = test_server
 
-${TARGET} : ${BUILD}/libnet-wrapper.a
+${TARGET} : ${BUILD}/libnet-wrapper.a main.cpp
 	g++ main.cpp -o $@ ${CXXFLAG} -I.. -L${BUILD} ${LIBS}
 
 .PHONY clean :

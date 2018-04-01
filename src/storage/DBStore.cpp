@@ -17,7 +17,7 @@
 
 namespace storage {
 
-int kConnectCount = 4;
+static int kConnectCount = 4;
 
 DBStore::DBConf DBStore::dbconf_;
 DBStore *DBStore::instance_ = nullptr;
@@ -30,7 +30,7 @@ DBStore::DBStore(const DBConf& dbconf) {
       CHECK_NOTNULL(item.get());
       connections_.push(item);
     }
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG(FATAL)<< "Connect to database failed! Message : " << e.what();
   }
   LOG(INFO)<< "Connected to database : " << dbconf.host << ":" << dbconf.port
@@ -95,7 +95,7 @@ void DBStore::Destory() {
   instance_ = nullptr;
 }
 
-DBStore* DBStore::Instance() {
+DBStore* DBStore::instance() {
   CHECK_NOTNULL(instance_);
   return instance_;
 }
@@ -152,7 +152,7 @@ std::shared_ptr<ResultSet> Statement::ExecuteQuery() {
   ResultSet* resultset;
   try {
     resultset = new ResultSet(stmt_->executeQuery());
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG(FATAL)<< e.what();
   }
   return std::shared_ptr<ResultSet>(resultset);
@@ -162,7 +162,7 @@ std::shared_ptr<ResultSet> Statement::ExecuteQuery(const std::string& sql) {
   ResultSet* resultset;
   try {
     resultset = new ResultSet(stmt_->executeQuery(sql));
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG(FATAL)<< e.what();
   }
   return std::shared_ptr<ResultSet>(resultset);
@@ -171,7 +171,7 @@ std::shared_ptr<ResultSet> Statement::ExecuteQuery(const std::string& sql) {
 void Statement::ExecuteUpdate() {
   try {
     stmt_->executeUpdate();
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG(FATAL)<< e.what();
   }
 }
@@ -179,7 +179,7 @@ void Statement::ExecuteUpdate() {
 void Statement::ExecuteUpdate(const std::string& sql) {
   try {
     stmt_->executeUpdate(sql);
-  } catch (std::exception& e) {
+  } catch (const std::exception& e) {
     LOG(FATAL)<< e.what();
   }
 }
@@ -322,15 +322,16 @@ int main(int argc, char *argv[]) {
 //	}
 
   {
-    auto conn = storage::DBStore::Instance()->GetConnection();
+    auto conn = storage::DBStore::instance()->GetConnection();
     auto stmt = conn->CreateStatement(" SELECT * FROM student ");
     auto resultset = stmt->ExecuteQuery();
     while (resultset->Next()) {
       DLOG(INFO)<< resultset->GetString(1);
       DLOG(INFO) << resultset->GetString(2);
     }
-    storage::DBStore::Instance()->PutConnection(conn);
+    storage::DBStore::instance()->PutConnection(conn);
   }
+
   storage::DBStore::Destory();
 
   return 0;

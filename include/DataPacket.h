@@ -19,8 +19,8 @@ class DataPacket {
       : data_(nullptr),
         capacity_(0),
         length_(0) {
-    data_ = new unsigned char[MAXSIZE / 2];
-    capacity_ += MAXSIZE / 2;
+    data_ = new unsigned char[MAXSIZE];
+    capacity_ += MAXSIZE;
   }
   DataPacket(const unsigned char *data, int size) {
     if (data != nullptr) {

@@ -118,7 +118,7 @@ public:
 
 	static void Init(const DBConf& dbconf);
 	static void Destory();
-	static DBStore* Instance();
+	static DBStore* instance();
 
 	static DBConf dbconf_;
 	static DBStore *instance_;
